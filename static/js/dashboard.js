@@ -196,10 +196,10 @@ const DashboardModule = {
       this.categoryChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-          labels: catLabels.length ? catLabels : ['Chicken', 'Mutton', 'Seafood', 'Beef', 'Cold Cuts'],
+          labels: catLabels.length ? catLabels : ['Chicken', 'Mutton', 'Seafood', 'Cold Cuts'],
           datasets: [{
-            data: catRevenues.length ? catRevenues : [45, 30, 15, 7, 3],
-            backgroundColor: ['#d97706', '#991b1b', '#0284c7', '#701a75', '#059669'],
+            data: catRevenues.length ? catRevenues : [50, 32, 15, 3],
+            backgroundColor: ['#d97706', '#991b1b', '#0284c7', '#059669'],
             borderWidth: 2,
             borderColor: '#ffffff',
             hoverOffset: 6

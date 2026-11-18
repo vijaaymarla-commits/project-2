@@ -53,6 +53,11 @@ def create_app():
     def staff_login():
         return render_template('staff_login.html')
 
+    @app.route('/register')
+    @app.route('/staff/register')
+    def register_page():
+        return render_template('register.html')
+
     @app.errorhandler(404)
     def not_found(e):
         return jsonify({'error': 'Resource not found'}), 404

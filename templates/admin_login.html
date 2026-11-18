@@ -51,11 +51,13 @@
   <div class="p-4 p-md-5 d-flex flex-column justify-content-center bg-white">
     
     <div class="text-center mb-4">
-      <div class="d-inline-flex p-3 rounded-circle bg-danger-subtle text-danger mb-2">
-        <i class="bi bi-shield-lock-fill fs-2"></i>
+      <div id="admin-header-badge" class="mb-2">
+        <div class="d-inline-flex p-3 rounded-circle bg-danger-subtle text-danger">
+          <i class="bi bi-shield-lock-fill fs-2"></i>
+        </div>
       </div>
       <h4 class="fw-bold text-dark mb-1">Owner / Administrator Login</h4>
-      <p class="text-muted small mb-0">Enter your administrative credentials to manage store operations</p>
+      <p class="text-muted small mb-0">Enter your credentials to manage <span class="store-name-text fw-bold">Fresh Cut</span></p>
     </div>
 
     <form id="admin-login-form" onsubmit="handleAdminLogin(event)">
@@ -79,11 +81,19 @@
         <i class="bi bi-box-arrow-in-right me-2"></i> Access Admin Dashboard
       </button>
 
-      <div class="text-center p-3 rounded bg-light border mb-3">
-        <small class="text-muted fw-bold d-block mb-1">Looking for Cashier / POS Billing?</small>
-        <a href="/staff/login" class="btn btn-sm btn-outline-dark fw-bold">
-          <i class="bi bi-person-badge-fill me-1"></i> Go to Staff & Cashier Terminal
-        </a>
+      <div class="d-flex justify-content-between align-items-center p-3 rounded bg-light border mb-3">
+        <div>
+          <small class="text-muted fw-bold d-block">Need an Account?</small>
+          <a href="/register" class="btn btn-sm btn-outline-danger fw-bold mt-1">
+            <i class="bi bi-person-plus-fill me-1"></i> Register Here
+          </a>
+        </div>
+        <div>
+          <small class="text-muted fw-bold d-block">Cashier / Billing?</small>
+          <a href="/staff/login" class="btn btn-sm btn-outline-dark fw-bold mt-1">
+            <i class="bi bi-person-badge-fill me-1"></i> Staff Login
+          </a>
+        </div>
       </div>
 
       <div class="text-center">
@@ -100,6 +110,27 @@
 <!-- App Scripts -->
 <script src="/static/js/animations.js"></script>
 <script>
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const res = await fetch('/api/v1/settings');
+    if (res.ok) {
+      const data = await res.json();
+      const s = data.settings || {};
+      if (s.shop_name) {
+        document.querySelectorAll('.store-name-text').forEach(el => el.innerText = s.shop_name);
+      }
+      if (s.shop_image_url) {
+        const headerBadge = document.getElementById('admin-header-badge');
+        if (headerBadge) {
+          headerBadge.innerHTML = `<img src="${s.shop_image_url}" alt="Shop Logo" style="width: 64px; height: 64px; object-fit: cover; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">`;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Could not load shop settings', e);
+  }
+});
+
 function quickDemoFill() {
   document.getElementById('admin-email').value = 'admin@freshcuts.com';
   document.getElementById('admin-pwd').value = 'admin123';

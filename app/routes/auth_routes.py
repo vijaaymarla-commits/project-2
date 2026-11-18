@@ -42,6 +42,55 @@ def login():
         'user': user_info
     })
 
+@auth_bp.route('/register', methods=['POST'])
+def register():
+    data = request.get_json() or {}
+    email = data.get('email', '').strip().lower()
+    full_name = data.get('full_name', '').strip()
+    phone = data.get('phone', '').strip()
+    password = data.get('password', '')
+    role = data.get('role', 'employee').strip().lower()
+
+    if not email or not password or not full_name:
+        return jsonify({'error': 'Full name, email, and password are required.'}), 400
+
+    if len(password) < 6:
+        return jsonify({'error': 'Password must be at least 6 characters long.'}), 400
+
+    if role not in ('employee', 'admin', 'customer'):
+        role = 'employee'
+
+    existing = db.get_user_by_email(email)
+    if existing:
+        return jsonify({'error': 'An account with this email address already exists. Please login instead.'}), 409
+
+    user_id = db.save_user({
+        'email': email,
+        'full_name': full_name,
+        'role': role,
+        'phone': phone,
+        'password': password,
+        'is_active': True
+    })
+
+    user = db.get_user_by_id(user_id)
+    token = generate_token(user)
+    db.log_audit(user_id, full_name, 'USER_REGISTER', 'profiles', user_id, {'email': email, 'role': role}, request.remote_addr)
+
+    user_info = {
+        'id': user['id'],
+        'email': user['email'],
+        'full_name': user['full_name'],
+        'role': user['role'],
+        'phone': user.get('phone')
+    }
+
+    return jsonify({
+        'message': 'Account registered successfully.',
+        'token': token,
+        'user': user_info
+    }), 201
+
 @auth_bp.route('/me', methods=['GET'])
 @require_auth
 def get_current_user():

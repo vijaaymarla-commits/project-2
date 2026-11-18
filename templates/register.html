@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account & Register - Fresh Cut Meat Shop</title>
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/animations.css">
+</head>
+<body style="background: linear-gradient(135deg, #1c1917 0%, #1e293b 50%, #0f172a 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px;">
+
+<div class="auth-card-box" style="max-width: 1000px; width: 100%;">
+  
+  <!-- Left Side: Brand Showcase -->
+  <div class="auth-brand-side" style="background: linear-gradient(135deg, #881337 0%, #4c0519 100%);">
+    <div>
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div id="register-shop-logo-container">
+          <div class="brand-icon fs-2">
+            <i class="bi bi-shop"></i>
+          </div>
+        </div>
+        <div>
+          <h3 class="mb-0 fw-bold store-name-text text-white">Fresh Cut</h3>
+          <span class="badge bg-white text-danger text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 0.08em;">Store Onboarding</span>
+        </div>
+      </div>
+      <h2 class="fw-extrabold mb-3 text-white" style="font-size: 1.85rem; line-height: 1.25;">Join the Fresh Cut Butchery Network</h2>
+      <p class="text-white-50" style="font-size: 0.9rem;">Register your employee profile, cashier credential, or store manager account to access high-speed POS billing, stock control, and cold-chain monitoring.</p>
+    </div>
+
+    <div>
+      <div class="d-flex align-items-center gap-2 text-white-50 small mb-2">
+        <i class="bi bi-check-circle-fill text-warning"></i>
+        <span>Individual Cashier / Staff Logins with Pin Access</span>
+      </div>
+      <div class="d-flex align-items-center gap-2 text-white-50 small mb-2">
+        <i class="bi bi-check-circle-fill text-warning"></i>
+        <span>Full Audit Trail & Real-time Sales Attribution</span>
+      </div>
+      <div class="d-flex align-items-center gap-2 text-white-50 small">
+        <i class="bi bi-check-circle-fill text-warning"></i>
+        <span>Encrypted Cloud Security & Supabase Integration</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Side: Dedicated Registration Form -->
+  <div class="p-4 p-md-5 d-flex flex-column justify-content-center bg-white">
+    
+    <div class="text-center mb-4">
+      <div id="register-header-badge" class="mb-2">
+        <div class="d-inline-flex p-3 rounded-circle bg-danger-subtle text-danger">
+          <i class="bi bi-person-plus-fill fs-2"></i>
+        </div>
+      </div>
+      <h4 class="fw-bold text-dark mb-1">Create an Account</h4>
+      <p class="text-muted small mb-0">Fill in your information to register for <span class="store-name-text fw-bold">Fresh Cut</span></p>
+    </div>
+
+    <form id="register-form" onsubmit="handleRegister(event)">
+      <div class="row g-2 mb-3">
+        <div class="col-md-6">
+          <label class="form-label fw-bold text-dark" style="font-size: 0.82rem;">Full Name *</label>
+          <div class="input-group">
+            <span class="input-group-text bg-light text-muted"><i class="bi bi-person"></i></span>
+            <input type="text" id="reg-name" class="form-control" placeholder="e.g. Ramesh Kumar" required>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold text-dark" style="font-size: 0.82rem;">Phone Number</label>
+          <div class="input-group">
+            <span class="input-group-text bg-light text-muted"><i class="bi bi-telephone"></i></span>
+            <input type="tel" id="reg-phone" class="form-control" placeholder="9876543210">
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-bold text-dark" style="font-size: 0.82rem;">Email Address *</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light text-muted"><i class="bi bi-envelope"></i></span>
+          <input type="email" id="reg-email" class="form-control" placeholder="staff@freshcuts.com" required>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-bold text-dark" style="font-size: 0.82rem;">Account Type / Role *</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light text-muted"><i class="bi bi-shield-check"></i></span>
+          <select id="reg-role" class="form-select" required>
+            <option value="employee" selected>Cashier / Billing Counter Staff</option>
+            <option value="admin">Store Owner / Manager (Full Admin)</option>
+            <option value="customer">Registered Retail Customer / Member</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row g-2 mb-4">
+        <div class="col-md-6">
+          <label class="form-label fw-bold text-dark" style="font-size: 0.82rem;">Password *</label>
+          <div class="input-group">
+            <span class="input-group-text bg-light text-muted"><i class="bi bi-lock"></i></span>
+            <input type="password" id="reg-pwd" class="form-control" placeholder="Min 6 chars" minlength="6" required>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold text-dark" style="font-size: 0.82rem;">Confirm Password *</label>
+          <div class="input-group">
+            <span class="input-group-text bg-light text-muted"><i class="bi bi-lock-fill"></i></span>
+            <input type="password" id="reg-confirm-pwd" class="form-control" placeholder="Repeat password" minlength="6" required>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-fresh-primary w-100 py-2 fs-6 mb-3 ripple-btn" id="reg-btn">
+        <i class="bi bi-check2-circle me-2"></i> Register Account & Sign In
+      </button>
+
+      <div class="d-flex justify-content-between align-items-center p-3 rounded bg-light border mb-2">
+        <small class="text-muted fw-bold">Already registered?</small>
+        <div class="d-flex gap-2">
+          <a href="/staff/login" class="btn btn-sm btn-outline-dark fw-bold">
+            <i class="bi bi-receipt me-1"></i> Staff Login
+          </a>
+          <a href="/admin/login" class="btn btn-sm btn-outline-danger fw-bold">
+            <i class="bi bi-shield-lock me-1"></i> Admin Login
+          </a>
+        </div>
+      </div>
+    </form>
+
+  </div>
+
+</div>
+
+<!-- App Scripts -->
+<script src="/static/js/animations.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const res = await fetch('/api/v1/settings');
+    if (res.ok) {
+      const data = await res.json();
+      const s = data.settings || {};
+      if (s.shop_name) {
+        document.querySelectorAll('.store-name-text').forEach(el => el.innerText = s.shop_name);
+      }
+      if (s.shop_image_url) {
+        const logoBox = document.getElementById('register-shop-logo-container');
+        if (logoBox) {
+          logoBox.innerHTML = `<img src="${s.shop_image_url}" alt="Shop Logo" style="width: 50px; height: 50px; object-fit: cover; border-radius: 10px; border: 2px solid rgba(255,255,255,0.4);">`;
+        }
+        const headerBadge = document.getElementById('register-header-badge');
+        if (headerBadge) {
+          headerBadge.innerHTML = `<img src="${s.shop_image_url}" alt="Shop Logo" style="width: 64px; height: 64px; object-fit: cover; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">`;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Could not load shop settings', e);
+  }
+});
+
+async function handleRegister(e) {
+  e.preventDefault();
+  const name = document.getElementById('reg-name').value.trim();
+  const phone = document.getElementById('reg-phone').value.trim();
+  const email = document.getElementById('reg-email').value.trim().toLowerCase();
+  const role = document.getElementById('reg-role').value;
+  const pwd = document.getElementById('reg-pwd').value;
+  const confirmPwd = document.getElementById('reg-confirm-pwd').value;
+
+  if (pwd !== confirmPwd) {
+    AnimEngine.showToast('Passwords do not match! Please check.', 'danger');
+    return;
+  }
+
+  const btn = document.getElementById('reg-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Registering Account...';
+
+  try {
+    const res = await fetch('/api/v1/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        full_name: name,
+        email: email,
+        phone: phone,
+        role: role,
+        password: pwd
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Registration failed');
+    }
+
+    AnimEngine.showToast('Account registered successfully! Redirecting...', 'success');
+
+    localStorage.setItem('fresh_token', data.token);
+    localStorage.setItem('fresh_user', JSON.stringify(data.user));
+
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 1000);
+
+  } catch (err) {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-check2-circle me-2"></i> Register Account & Sign In';
+    AnimEngine.showToast(err.message, 'danger');
+  }
+}
+</script>
+</body>
+</html>

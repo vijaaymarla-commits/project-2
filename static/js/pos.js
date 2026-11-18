@@ -47,7 +47,7 @@ const POSModule = {
   },
 
   renderCategoryBar() {
-    const cats = ['All', 'Chicken', 'Mutton', 'Seafood', 'Beef', 'Cold Cuts & Marinades'];
+    const cats = ['All', 'Chicken', 'Mutton', 'Seafood', 'Cold Cuts & Marinades'];
     const bar = document.getElementById('pos-category-bar');
     if (!bar) return;
 
@@ -63,7 +63,6 @@ const POSModule = {
       case 'Chicken': return '🍗';
       case 'Mutton': return '🥩';
       case 'Seafood': return '🐟';
-      case 'Beef': return '🥩';
       case 'Cold Cuts & Marinades': return '🥓';
       default: return '🔪';
     }
@@ -266,12 +265,14 @@ const POSModule = {
     if (gstToggle) gstToggle.checked = false;
     // Reset extra charge toggle
     const extraToggle = document.getElementById('pos-extra-toggle');
-    if (extraToggle) { extraToggle.checked = false; this.toggleExtraCharge(); }
+    if (extraToggle) extraToggle.checked = false;
+    const extraPanel = document.getElementById('pos-extra-panel');
+    if (extraPanel) extraPanel.style.display = 'none';
     // Reset input values
     const discEl = document.getElementById('pos-discount-input');
     if (discEl) discEl.value = 0;
-    const extraEl = document.getElementById('pos-extra-amount');
-    if (extraEl) extraEl.value = 0;
+    const extraRateEl = document.getElementById('pos-extra-rate');
+    if (extraRateEl) extraRateEl.value = 20;
     this.renderCart();
   },
 
@@ -376,19 +377,69 @@ const POSModule = {
       taxEl.className = gstEnabled ? 'text-danger fw-bold' : 'text-muted';
     }
 
-    // --- Optional Extra Charges ---
+    // --- Dynamic Extra Charges (Per Kg / Per Qty / Flat) ---
     const extraToggle = document.getElementById('pos-extra-toggle');
     const extraEnabled = extraToggle ? extraToggle.checked : false;
-    const extraAmount = extraEnabled
-      ? (parseFloat((document.getElementById('pos-extra-amount') || {}).value) || 0)
-      : 0;
+    const extraPanel = document.getElementById('pos-extra-panel');
+    if (extraPanel) extraPanel.style.display = extraEnabled ? 'block' : 'none';
+
+    let extraAmount = 0;
+    let extraLabel = 'Extra Charges';
+
+    if (extraEnabled) {
+      const modeEl = document.getElementById('pos-extra-mode');
+      const mode = modeEl ? modeEl.value : 'per_kg';
+      const rateEl = document.getElementById('pos-extra-rate');
+      const rate = rateEl ? (parseFloat(rateEl.value) || 0) : 0;
+
+      const presetEl = document.getElementById('pos-extra-preset');
+      const customEl = document.getElementById('pos-extra-custom-label');
+      let reason = (presetEl && presetEl.value === 'custom')
+        ? (customEl ? customEl.value.trim() : 'Service Charge')
+        : (presetEl ? presetEl.value : 'Cutting & Slicing');
+      if (!reason) reason = 'Extra Charge';
+
+      // Total kg in cart (items with unit kg)
+      const totalKg = this.cart
+        .filter(i => (i.unit || '').toLowerCase() === 'kg')
+        .reduce((sum, i) => sum + (parseFloat(i.quantity) || 0), 0);
+
+      // Total quantity of all items in cart
+      const totalQty = this.cart
+        .reduce((sum, i) => sum + (parseFloat(i.quantity) || 0), 0);
+
+      const breakdownEl = document.getElementById('pos-extra-calc-breakdown');
+
+      if (mode === 'per_kg') {
+        extraAmount = Math.round(totalKg * rate * 100) / 100;
+        extraLabel = `${reason} (${totalKg.toFixed(2)} kg @ ₹${rate.toFixed(0)}/kg)`;
+        if (breakdownEl) {
+          breakdownEl.innerHTML = `<i class="bi bi-calculator me-1"></i>Weight: <b>${totalKg.toFixed(2)} kg</b> × ₹${rate.toFixed(0)}/kg = <span class="badge bg-danger">₹${extraAmount.toFixed(2)}</span>`;
+        }
+      } else if (mode === 'per_qty') {
+        extraAmount = Math.round(totalQty * rate * 100) / 100;
+        extraLabel = `${reason} (${totalQty} units @ ₹${rate.toFixed(0)}/item)`;
+        if (breakdownEl) {
+          breakdownEl.innerHTML = `<i class="bi bi-calculator me-1"></i>Quantity: <b>${totalQty} items</b> × ₹${rate.toFixed(0)}/item = <span class="badge bg-danger">₹${extraAmount.toFixed(2)}</span>`;
+        }
+      } else {
+        // Flat amount
+        extraAmount = Math.round(rate * 100) / 100;
+        extraLabel = reason;
+        if (breakdownEl) {
+          breakdownEl.innerHTML = `<i class="bi bi-tag me-1"></i>Fixed Fee = <span class="badge bg-danger">₹${extraAmount.toFixed(2)}</span>`;
+        }
+      }
+    }
+
     const extraDisplay = document.getElementById('pos-extra-display');
     if (extraDisplay) {
       extraDisplay.innerText = extraEnabled ? `₹${extraAmount.toFixed(2)}` : '—';
-      extraDisplay.className = extraEnabled ? 'text-warning fw-bold' : 'text-muted';
+      extraDisplay.className = extraEnabled ? 'text-danger fw-bold' : 'text-muted';
     }
+
     this.extraChargeAmount = extraAmount;
-    this.extraChargeLabel = (document.getElementById('pos-extra-label') || {}).value || 'Extra Charges';
+    this.extraChargeLabel = extraLabel;
 
     const total = Math.round((discounted + tax + extraAmount) * 100) / 100;
 
@@ -400,14 +451,34 @@ const POSModule = {
   },
 
   toggleExtraCharge() {
-    const extraToggle = document.getElementById('pos-extra-toggle');
-    const isOn = extraToggle ? extraToggle.checked : false;
-    const labelInput = document.getElementById('pos-extra-label');
-    const staticLabel = document.getElementById('pos-extra-static-label');
-    const amtBox = document.getElementById('pos-extra-amt-box');
-    if (labelInput) labelInput.style.display = isOn ? 'block' : 'none';
-    if (staticLabel) staticLabel.style.display = isOn ? 'none' : 'inline';
-    if (amtBox) amtBox.style.display = isOn ? 'block' : 'none';
+    this.renderCart();
+  },
+
+  onExtraPresetChange(val) {
+    const customBox = document.getElementById('pos-extra-custom-box');
+    if (customBox) customBox.style.display = val === 'custom' ? 'block' : 'none';
+    this.renderCart();
+  },
+
+  onExtraModeChange(val) {
+    const unitLabel = document.getElementById('pos-extra-unit-label');
+    const rateLabel = document.getElementById('pos-extra-rate-label');
+    if (val === 'per_kg') {
+      if (unitLabel) unitLabel.innerText = '/kg';
+      if (rateLabel) rateLabel.innerText = 'Rate: ₹';
+    } else if (val === 'per_qty') {
+      if (unitLabel) unitLabel.innerText = '/item';
+      if (rateLabel) rateLabel.innerText = 'Rate: ₹';
+    } else {
+      if (unitLabel) unitLabel.innerText = 'flat';
+      if (rateLabel) rateLabel.innerText = 'Amount: ₹';
+    }
+    this.renderCart();
+  },
+
+  setExtraRate(val) {
+    const rateEl = document.getElementById('pos-extra-rate');
+    if (rateEl) rateEl.value = val;
     this.renderCart();
   },
 
@@ -472,6 +543,11 @@ const POSModule = {
     if (receiptBox) {
       receiptBox.innerHTML = `
         <div style="text-align: center;">
+          ${settings.shop_image_url ? `
+            <div style="margin-bottom: 6px;">
+              <img src="${settings.shop_image_url}" alt="Store Logo" style="max-height: 52px; max-width: 160px; object-fit: contain; border-radius: 4px;">
+            </div>
+          ` : ''}
           <h4 style="font-weight: 900; margin-bottom: 2px; color: #881337;">${settings.shop_name || 'FRESH CUT PRIME MEAT'}</h4>
           <div style="font-size: 11px; font-weight: bold;">${settings.shop_tagline || 'Artisanal Fresh & Tender Cuts Everyday'}</div>
           <div style="font-size: 10px;">${settings.shop_address || ''}</div>

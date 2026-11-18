@@ -666,6 +666,8 @@ const UsersModule = {
 
 // 9. SETTINGS MODULE
 const SettingsModule = {
+  selectedFile: null,
+
   async load() {
     try {
       const res = await App.api('/api/v1/settings');
@@ -679,30 +681,112 @@ const SettingsModule = {
       document.getElementById('set-currency').value = s.currency_symbol || '₹';
       document.getElementById('set-tax-rate').value = s.default_tax_rate || '5.0';
       document.getElementById('set-receipt-footer').value = s.receipt_footer_note || '';
+
+      const imgInput = document.getElementById('set-shop-image-url');
+      if (imgInput) imgInput.value = s.shop_image_url || '';
+      this.updatePreview(s.shop_image_url);
     } catch (e) {
       console.error(e);
     }
   },
 
+  updatePreview(url) {
+    const preview = document.getElementById('set-shop-img-preview');
+    const empty = document.getElementById('set-shop-img-empty');
+    if (!preview || !empty) return;
+
+    if (url && url.trim()) {
+      preview.src = url;
+      preview.style.display = 'block';
+      empty.style.display = 'none';
+    } else {
+      preview.src = '';
+      preview.style.display = 'none';
+      empty.style.display = 'block';
+    }
+  },
+
+  onFileSelected(input) {
+    if (input.files && input.files[0]) {
+      this.selectedFile = input.files[0];
+      const previewUrl = URL.createObjectURL(this.selectedFile);
+      this.updatePreview(previewUrl);
+    }
+  },
+
+  onUrlInput(url) {
+    this.selectedFile = null;
+    const fileInput = document.getElementById('set-shop-file-input');
+    if (fileInput) fileInput.value = '';
+    this.updatePreview(url);
+  },
+
+  clearImage() {
+    this.selectedFile = null;
+    const fileInput = document.getElementById('set-shop-file-input');
+    if (fileInput) fileInput.value = '';
+    const urlInput = document.getElementById('set-shop-image-url');
+    if (urlInput) urlInput.value = '';
+    this.updatePreview('');
+  },
+
   async save(e) {
     e.preventDefault();
-    const payload = {
-      shop_name: document.getElementById('set-shop-name').value.trim(),
-      shop_tagline: document.getElementById('set-tagline').value.trim(),
-      shop_phone: document.getElementById('set-phone').value.trim(),
-      shop_email: document.getElementById('set-email').value.trim(),
-      shop_address: document.getElementById('set-address').value.trim(),
-      gstin_tax_id: document.getElementById('set-gstin').value.trim(),
-      currency_symbol: document.getElementById('set-currency').value.trim(),
-      default_tax_rate: document.getElementById('set-tax-rate').value.trim(),
-      receipt_footer_note: document.getElementById('set-receipt-footer').value.trim()
-    };
+    const btn = e.target.querySelector('button[type="submit"]');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Saving Settings...';
+    }
+
     try {
+      let finalImageUrl = document.getElementById('set-shop-image-url')?.value.trim() || '';
+
+      // If user selected a new file from their device, upload it first
+      if (this.selectedFile) {
+        const formData = new FormData();
+        formData.append('image', this.selectedFile);
+
+        const uploadRes = await fetch('/api/v1/settings/upload-image', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${App.token}`
+          },
+          body: formData
+        });
+
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok) {
+          throw new Error(uploadData.error || 'Failed to upload shop image.');
+        }
+
+        finalImageUrl = uploadData.image_url;
+        this.selectedFile = null;
+      }
+
+      const payload = {
+        shop_name: document.getElementById('set-shop-name').value.trim(),
+        shop_tagline: document.getElementById('set-tagline').value.trim(),
+        shop_phone: document.getElementById('set-phone').value.trim(),
+        shop_email: document.getElementById('set-email').value.trim(),
+        shop_address: document.getElementById('set-address').value.trim(),
+        gstin_tax_id: document.getElementById('set-gstin').value.trim(),
+        currency_symbol: document.getElementById('set-currency').value.trim(),
+        default_tax_rate: document.getElementById('set-tax-rate').value.trim(),
+        receipt_footer_note: document.getElementById('set-receipt-footer').value.trim(),
+        shop_image_url: finalImageUrl
+      };
+
       await App.api('/api/v1/settings', { method: 'POST', body: payload });
-      AnimEngine.showToast('Store settings saved successfully.', 'success');
-      App.fetchSettings();
+      AnimEngine.showToast('Store branding and settings saved successfully!', 'success');
+      await App.fetchSettings();
     } catch (err) {
       console.error(err);
+      AnimEngine.showToast(err.message, 'danger');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-save me-1"></i> Save Store Preferences';
+      }
     }
   }
 };

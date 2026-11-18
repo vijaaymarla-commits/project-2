@@ -85,7 +85,45 @@ const App = {
       if (res.ok) {
         const data = await res.json();
         this.settings = data.settings || {};
-        document.querySelectorAll('.store-name-text').forEach(el => el.innerText = this.settings.shop_name || 'Fresh Cut Meat Shop');
+        const s = this.settings;
+
+        // Store Name, Tagline, Phone, Address, GSTIN
+        document.querySelectorAll('.store-name-text').forEach(el => el.innerText = s.shop_name || 'Fresh Cut Meat Shop');
+        document.querySelectorAll('.store-tagline-text').forEach(el => el.innerText = s.shop_tagline || 'Artisanal Fresh & Tender Cuts Everyday');
+        document.querySelectorAll('.store-phone-text').forEach(el => el.innerText = s.shop_phone || '+91 98765 43210');
+        document.querySelectorAll('.store-address-text').forEach(el => el.innerText = s.shop_address || '12 Butcher Lane, Central Market');
+        document.querySelectorAll('.store-gstin-text').forEach(el => el.innerText = s.gstin_tax_id || '36AABCU9603R1ZM');
+
+        // Shop Branding Image / Storefront Photo
+        const imgUrl = s.shop_image_url;
+
+        // 1. Sidebar Logo
+        const sidebarImg = document.getElementById('sidebar-shop-img');
+        const sidebarDefIcon = document.getElementById('sidebar-default-icon');
+        if (sidebarImg && sidebarDefIcon) {
+          if (imgUrl) {
+            sidebarImg.src = imgUrl;
+            sidebarImg.style.display = 'block';
+            sidebarDefIcon.style.display = 'none';
+          } else {
+            sidebarImg.style.display = 'none';
+            sidebarDefIcon.style.display = 'block';
+          }
+        }
+
+        // 2. Dashboard Banner Image
+        const dashImg = document.getElementById('dash-shop-img');
+        const dashPlaceholder = document.getElementById('dash-shop-placeholder');
+        if (dashImg && dashPlaceholder) {
+          if (imgUrl) {
+            dashImg.src = imgUrl;
+            dashImg.style.display = 'block';
+            dashPlaceholder.style.display = 'none';
+          } else {
+            dashImg.style.display = 'none';
+            dashPlaceholder.style.display = 'block';
+          }
+        }
       }
     } catch (e) {
       console.warn('Settings load warning', e);
@@ -190,7 +228,7 @@ const App = {
     const titles = {
       'dashboard': { title: 'Executive Butchery Dashboard', desc: 'Real-time sales, meat inventory balances and profit analytics' },
       'pos': { title: 'Fresh Cut POS Billing', desc: 'High-speed touch billing, weighing scale & digital receipts' },
-      'products': { title: 'Meat Cuts & Pricing Catalog', desc: 'Manage poultry, mutton, seafood, beef cuts and price rules' },
+      'products': { title: 'Meat Cuts & Pricing Catalog', desc: 'Manage poultry, mutton, and seafood cuts and price rules' },
       'inventory': { title: 'Stock Increment & Decrement Management', desc: 'Add incoming fresh meat, record stock reductions and monitor thresholds' },
       'customers': { title: 'Customer Credit Ledger', desc: 'Retail and wholesale accounts with credit management' },
       'suppliers': { title: 'Suppliers & Livestock Farms', desc: 'Livestock breeders, poultry hatcheries and seafood logistics' },
