@@ -1,5 +1,5 @@
 /* ==========================================================
-   FRESH CUT MEAT SHOP - DASHBOARD MODULE
+   FRESH CUT MEAT SHOP - BUTCHERY DASHBOARD MODULE
    ========================================================== */
 
 const DashboardModule = {
@@ -34,28 +34,34 @@ const DashboardModule = {
     AnimEngine.animateCounter(document.getElementById('kpi-low-stock-count'), kpi.low_stock_count || 0, 600, '', 0);
     AnimEngine.animateCounter(document.getElementById('kpi-today-bills'), kpi.today_bills || 0, 600, '', 0);
 
-    // Render Low Stock Alert list
+    // Render Low Stock Alert list with meat badges
     const alertBox = document.getElementById('dash-low-stock-list');
     if (alertBox) {
       if (data.low_stock_alerts && data.low_stock_alerts.length > 0) {
-        alertBox.innerHTML = data.low_stock_alerts.map(item => `
-          <div class="d-flex align-items-center justify-content-between p-3 mb-2 rounded" style="background: #fff1f2; border: 1px solid #ffe4e6;">
-            <div>
-              <div class="fw-bold text-danger" style="font-size: 0.9rem;">
-                <i class="bi bi-exclamation-triangle-fill me-1"></i> ${item.name}
+        alertBox.innerHTML = data.low_stock_alerts.map(item => {
+          const isOut = parseFloat(item.current_stock || 0) <= 0;
+          return `
+            <div class="d-flex align-items-center justify-content-between p-3 mb-2 rounded"
+                 style="background: ${isOut ? '#1c1917' : '#fff1f2'}; border: 1px solid ${isOut ? '#292524' : '#fecdd3'}; color: ${isOut ? '#ffffff' : '#991b1b'};">
+              <div>
+                <div class="fw-bold" style="font-size: 0.9rem;">
+                  <i class="bi ${isOut ? 'bi-x-circle-fill text-danger' : 'bi-exclamation-triangle-fill text-warning'} me-1"></i> ${item.name}
+                </div>
+                <div style="font-size: 0.78rem; opacity: 0.85;">Cut Category: ${item.category} • Min Required: ${item.min_stock} ${item.unit}</div>
               </div>
-              <div class="text-muted" style="font-size: 0.78rem;">Category: ${item.category} • Min Required: ${item.min_stock} ${item.unit}</div>
+              <div class="text-end">
+                <span class="badge ${isOut ? 'bg-danger' : 'bg-warning text-dark'} pulse-badge">
+                  ${isOut ? 'OUT OF STOCK' : `${item.current_stock} ${item.unit} left`}
+                </span>
+              </div>
             </div>
-            <div class="text-end">
-              <span class="badge bg-danger pulse-badge">${item.current_stock} ${item.unit} left</span>
-            </div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
       } else {
         alertBox.innerHTML = `
           <div class="text-center py-4 text-muted">
             <i class="bi bi-shield-check text-success fs-1"></i>
-            <p class="mt-2 mb-0" style="font-size: 0.85rem;">All fresh meat stocks are above minimum threshold!</p>
+            <p class="mt-2 mb-0 fw-bold" style="font-size: 0.88rem;">All meat cuts are fully stocked above minimum threshold!</p>
           </div>
         `;
       }
@@ -67,15 +73,15 @@ const DashboardModule = {
       if (data.recent_transactions && data.recent_transactions.length > 0) {
         txBody.innerHTML = data.recent_transactions.map(tx => `
           <tr>
-            <td class="fw-bold text-success">${tx.invoice_no}</td>
-            <td>${tx.customer_name || 'Counter Walk-in'}</td>
+            <td class="fw-bold text-danger">${tx.invoice_no}</td>
+            <td>${tx.customer_name || 'Retail Walk-in'}</td>
             <td><span class="badge bg-light text-dark border">${tx.payment_method}</span></td>
             <td>${new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-            <td class="text-end fw-bold">₹${parseFloat(tx.total_amount).toFixed(2)}</td>
+            <td class="text-end fw-bold text-dark">₹${parseFloat(tx.total_amount).toFixed(2)}</td>
           </tr>
         `).join('');
       } else {
-        txBody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted">No transactions today yet.</td></tr>';
+        txBody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted">No transactions recorded today yet.</td></tr>';
       }
     }
 
@@ -96,20 +102,20 @@ const DashboardModule = {
       if (data.recent_transactions && data.recent_transactions.length > 0) {
         empTxBody.innerHTML = data.recent_transactions.map(tx => `
           <tr>
-            <td class="fw-bold text-success">${tx.invoice_no}</td>
+            <td class="fw-bold text-danger">${tx.invoice_no}</td>
             <td><span class="badge bg-light text-dark border">${tx.payment_method}</span></td>
             <td>${new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
             <td class="text-end fw-bold">₹${parseFloat(tx.total_amount).toFixed(2)}</td>
           </tr>
         `).join('');
       } else {
-        empTxBody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">No bills generated by you today yet.</td></tr>';
+        empTxBody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">No bills generated on your terminal today yet.</td></tr>';
       }
     }
   },
 
   renderCharts(chartsData = {}) {
-    // 1. Sales Trend Line Chart
+    // 1. Sales Trend Line Chart (Artisanal Red Curve)
     const salesCanvas = document.getElementById('dash-sales-chart');
     if (salesCanvas) {
       const ctx = salesCanvas.getContext('2d');
@@ -120,10 +126,10 @@ const DashboardModule = {
       const salesValues = trends.map(t => t.total_sales);
       const cogsValues = trends.map(t => t.total_cogs);
 
-      // Create gradient fill
+      // Create rich butcher red gradient
       const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-      gradient.addColorStop(0, 'rgba(16, 185, 129, 0.4)');
-      gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+      gradient.addColorStop(0, 'rgba(225, 29, 72, 0.35)');
+      gradient.addColorStop(1, 'rgba(225, 29, 72, 0.0)');
 
       this.salesChart = new Chart(ctx, {
         type: 'line',
@@ -132,20 +138,20 @@ const DashboardModule = {
           datasets: [
             {
               label: 'Sales Revenue (₹)',
-              data: salesValues.length ? salesValues : [1200, 2400, 1800, 3200, 4100, 5600, 4800],
-              borderColor: '#059669',
+              data: salesValues.length ? salesValues : [2400, 3600, 3100, 4800, 6200, 8900, 7400],
+              borderColor: '#be123c',
               backgroundColor: gradient,
               borderWidth: 3,
               fill: true,
               tension: 0.35,
-              pointBackgroundColor: '#064e3b',
+              pointBackgroundColor: '#881337',
               pointRadius: 4,
               pointHoverRadius: 7
             },
             {
               label: 'Cost of Goods Sold (₹)',
-              data: cogsValues.length ? cogsValues : [850, 1600, 1250, 2100, 2800, 3900, 3400],
-              borderColor: '#94a3b8',
+              data: cogsValues.length ? cogsValues : [1700, 2500, 2200, 3300, 4200, 6100, 5100],
+              borderColor: '#78716c',
               borderDash: [5, 5],
               borderWidth: 2,
               fill: false,
@@ -159,9 +165,9 @@ const DashboardModule = {
           maintainAspectRatio: false,
           animation: { duration: 1200, easing: 'easeOutQuart' },
           plugins: {
-            legend: { position: 'top', labels: { boxWidth: 12, font: { family: 'Inter', weight: 500 } } },
+            legend: { position: 'top', labels: { boxWidth: 12, font: { family: 'Inter', weight: 600 } } },
             tooltip: {
-              backgroundColor: '#0f172a',
+              backgroundColor: '#1c1917',
               padding: 12,
               cornerRadius: 8,
               callbacks: {
@@ -170,14 +176,14 @@ const DashboardModule = {
             }
           },
           scales: {
-            y: { grid: { color: '#f1f5f9' }, ticks: { callback: v => '₹' + v } },
+            y: { grid: { color: '#f5f5f4' }, ticks: { callback: v => '₹' + v } },
             x: { grid: { display: false } }
           }
         }
       });
     }
 
-    // 2. Category Doughnut Chart
+    // 2. Meat Category Doughnut Chart
     const catCanvas = document.getElementById('dash-category-chart');
     if (catCanvas) {
       const ctx = catCanvas.getContext('2d');
@@ -193,7 +199,7 @@ const DashboardModule = {
           labels: catLabels.length ? catLabels : ['Chicken', 'Mutton', 'Seafood', 'Beef', 'Cold Cuts'],
           datasets: [{
             data: catRevenues.length ? catRevenues : [45, 30, 15, 7, 3],
-            backgroundColor: ['#10b981', '#ef4444', '#3b82f6', '#8b5cf6', '#f59e0b'],
+            backgroundColor: ['#d97706', '#991b1b', '#0284c7', '#701a75', '#059669'],
             borderWidth: 2,
             borderColor: '#ffffff',
             hoverOffset: 6

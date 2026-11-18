@@ -10,16 +10,110 @@
   <!-- Bootstrap Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   
-  <!-- Custom Styling & Micro-interactions -->
+  <!-- Custom Butcher Styling & Micro-interactions -->
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="stylesheet" href="/static/css/animations.css">
   <link rel="stylesheet" href="/static/css/pos.css">
 </head>
 <body>
 
-<div id="app-container">
+<!-- ==========================================================
+     DEDICATED SPLIT SIGN IN SCREEN (SHOWN INITIALLY / ON LOGOUT)
+     ========================================================== -->
+<div id="auth-screen-container" style="display: none;">
+  <div class="auth-card-box">
+    
+    <!-- Left Brand Column -->
+    <div class="auth-brand-side">
+      <div>
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <div class="brand-icon fs-2"><i class="bi bi-shield-shaded"></i></div>
+          <div>
+            <h3 class="mb-0 fw-bold store-name-text">Fresh Cut</h3>
+            <span class="badge bg-danger text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 0.08em;">Prime Meat POS & ERP</span>
+          </div>
+        </div>
+        <h2 class="fw-extrabold mb-3" style="font-size: 1.8rem; line-height: 1.25;">Hygienic, Farm-Fresh & Tender Meat Operations</h2>
+        <p class="text-white-50" style="font-size: 0.9rem;">High-speed butcher point-of-sale, weight-scale billing, inventory wastage tracking, and Supabase cloud sync.</p>
+      </div>
+
+      <div>
+        <div class="d-flex align-items-center gap-2 text-white-50 small mb-2">
+          <i class="bi bi-check-circle-fill text-warning"></i>
+          <span>PostgreSQL Relational Cloud Database Connected</span>
+        </div>
+        <div class="d-flex align-items-center gap-2 text-white-50 small">
+          <i class="bi bi-check-circle-fill text-warning"></i>
+          <span>Strict Role-Based Security (Admin vs Cashier)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Login Form Column -->
+    <div class="p-4 p-md-5 d-flex flex-column justify-content-center bg-white">
+      
+      <!-- Role Portal Selector Tabs -->
+      <div class="auth-portal-selector">
+        <button type="button" class="auth-tab-btn active" id="tab-admin-portal" onclick="App.setAuthPortalTab('admin')">
+          <i class="bi bi-shield-lock-fill"></i> Admin / Owner
+        </button>
+        <button type="button" class="auth-tab-btn" id="tab-staff-portal" onclick="App.setAuthPortalTab('employee')">
+          <i class="bi bi-person-badge-fill"></i> Staff / Cashier
+        </button>
+      </div>
+
+      <div class="text-center mb-4">
+        <i id="auth-role-icon" class="bi bi-shield-lock-fill text-danger fs-2 mb-2"></i>
+        <h4 class="fw-bold mb-1" id="auth-role-title">🛡️ Owner & Administrator Portal</h4>
+        <small class="text-muted" id="auth-role-desc">Access executive P&L, shop expenses, staff administration, and settings</small>
+      </div>
+
+      <form onsubmit="App.handleLoginFormSubmit(event)">
+        <div class="mb-3">
+          <label class="form-label fw-bold" style="font-size: 0.85rem;">Account Email</label>
+          <div class="input-group">
+            <span class="input-group-text bg-light"><i class="bi bi-envelope"></i></span>
+            <input type="email" id="auth-email-input" class="form-control" value="admin@freshcuts.com" required>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-bold" style="font-size: 0.85rem;">Access Password</label>
+          <div class="input-group">
+            <span class="input-group-text bg-light"><i class="bi bi-key"></i></span>
+            <input type="password" id="auth-pwd-input" class="form-control" value="admin123" required>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-fresh-primary w-100 py-2 fs-6 mb-3 ripple-btn" id="auth-submit-btn">
+          <i class="bi bi-box-arrow-in-right me-2"></i> Sign In to Terminal
+        </button>
+      </form>
+
+      <!-- 1-Click Quick Demo Sign In Helpers -->
+      <div class="text-center pt-2 border-top">
+        <small class="text-muted fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">Quick 1-Click Evaluation</small>
+        <div class="d-flex gap-2 mt-2">
+          <button type="button" class="btn btn-sm btn-outline-danger flex-fill" onclick="App.login('admin@freshcuts.com', 'admin123')">
+            <i class="bi bi-shield-check"></i> Demo Admin
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-dark flex-fill" onclick="App.login('emp1@freshcuts.com', 'emp123')">
+            <i class="bi bi-receipt"></i> Demo Cashier
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ==========================================================
+     MAIN APP SHELL (SHOWN WHEN LOGGED IN)
+     ========================================================== -->
+<div id="app-container" style="display: none;">
   
-  <!-- ==================== SIDEBAR NAVIGATION ==================== -->
+  <!-- Sidebar Navigation -->
   <aside class="app-sidebar">
     <div class="sidebar-brand">
       <div class="brand-icon">
@@ -43,7 +137,7 @@
         <a href="#" class="nav-link" data-view="pos">
           <i class="bi bi-receipt-cutoff"></i>
           <span>POS Billing</span>
-          <span class="nav-badge bg-emerald-500 text-white" style="background: #10b981;">FAST</span>
+          <span class="nav-badge bg-danger text-white">TOUCH POS</span>
         </a>
       </li>
       <li class="nav-item">
@@ -120,14 +214,14 @@
           <div class="user-name" id="sidebar-user-name">Loading...</div>
           <span class="user-role-badge role-admin" id="sidebar-user-role">ADMIN</span>
         </div>
-        <button class="btn btn-sm btn-link text-white-50 p-0" title="Logout" onclick="App.logout()">
+        <button class="btn btn-sm btn-link text-white-50 p-0" title="Sign Out" onclick="App.logout()">
           <i class="bi bi-box-arrow-right fs-5"></i>
         </button>
       </div>
     </div>
   </aside>
 
-  <!-- ==================== MAIN APPLICATION AREA ==================== -->
+  <!-- Main App Content -->
   <main class="app-main">
     
     <!-- Top Header -->
@@ -137,25 +231,22 @@
           <i class="bi bi-list"></i>
         </button>
         <div class="header-title-box">
-          <h1 id="page-header-title">Executive Dashboard</h1>
-          <p id="page-header-desc" class="mb-0">Real-time sales, inventory alerts and financial analytics</p>
+          <h1 id="page-header-title">Executive Butchery Dashboard</h1>
+          <p id="page-header-desc" class="mb-0">Real-time sales, meat inventory balances and profit analytics</p>
         </div>
       </div>
 
       <div class="header-right">
-        <!-- Live Clock -->
         <div class="d-none d-md-flex align-items-center gap-2 text-muted" style="font-size: 0.85rem;">
           <i class="bi bi-clock"></i>
           <span id="live-clock">--:--:--</span>
         </div>
 
-        <!-- Store Open Badge -->
         <div class="store-status-pill">
-          <span class="status-dot pulse-green"></span>
-          <span>Store Live (Supabase DB)</span>
+          <span class="status-dot"></span>
+          <span>Supabase Live</span>
         </div>
 
-        <!-- 1-Click Role Switcher for Demo Testing -->
         <button class="btn btn-sm btn-fresh-secondary ripple-btn" id="role-toggle-btn" onclick="App.toggleDemoRole()">
           <i class="bi bi-arrow-left-right"></i> Switch Role
         </button>
@@ -170,21 +261,20 @@
            ========================================== -->
       <div id="view-dashboard" class="view-container">
         
-        <!-- ADMIN DASHBOARD -->
+        <!-- ADMIN BUTCHERY DASHBOARD -->
         <div id="admin-dash-view">
-          <!-- Animated KPI Cards Grid -->
           <div class="row g-4 mb-4">
             
             <div class="col-xl-3 col-md-6">
               <div class="premium-card kpi-card interactive-lift" onclick="App.switchView('pos')">
                 <div class="kpi-header">
                   <span class="kpi-title">Today's Sales</span>
-                  <div class="kpi-icon-bubble bubble-green"><i class="bi bi-currency-rupee"></i></div>
+                  <div class="kpi-icon-bubble bubble-crimson"><i class="bi bi-cash-stack"></i></div>
                 </div>
-                <div class="kpi-value" id="kpi-today-sales" data-value="0">₹0.00</div>
+                <div class="kpi-value text-danger" id="kpi-today-sales" data-value="0">₹0.00</div>
                 <div class="kpi-subtext">
                   <span class="trend-badge trend-up"><i class="bi bi-arrow-up-short"></i> Today</span>
-                  <span><b id="kpi-today-bills">0</b> bills completed</span>
+                  <span><b id="kpi-today-bills">0</b> butcher bills completed</span>
                 </div>
               </div>
             </div>
@@ -192,10 +282,10 @@
             <div class="col-xl-3 col-md-6">
               <div class="premium-card kpi-card interactive-lift" onclick="App.switchView('reports')">
                 <div class="kpi-header">
-                  <span class="kpi-title">Gross Profit</span>
-                  <div class="kpi-icon-bubble bubble-emerald"><i class="bi bi-graph-up"></i></div>
+                  <span class="kpi-title">Gross Butchery Margin</span>
+                  <div class="kpi-icon-bubble bubble-maroon"><i class="bi bi-graph-up-arrow"></i></div>
                 </div>
-                <div class="kpi-value text-success" id="kpi-gross-profit" data-value="0">₹0.00</div>
+                <div class="kpi-value text-dark" id="kpi-gross-profit" data-value="0">₹0.00</div>
                 <div class="kpi-subtext">
                   <span>Net Revenue less COGS</span>
                 </div>
@@ -206,11 +296,11 @@
               <div class="premium-card kpi-card interactive-lift" onclick="App.switchView('reports')">
                 <div class="kpi-header">
                   <span class="kpi-title">Net Operating Result</span>
-                  <div class="kpi-icon-bubble bubble-blue"><i class="bi bi-pie-chart"></i></div>
+                  <div class="kpi-icon-bubble bubble-gold"><i class="bi bi-piggy-bank"></i></div>
                 </div>
                 <div class="kpi-value" id="kpi-net-profit" data-value="0">₹0.00</div>
                 <div class="kpi-subtext">
-                  <span>After wastage & expenses</span>
+                  <span>After trimming losses & expenses</span>
                 </div>
               </div>
             </div>
@@ -218,13 +308,13 @@
             <div class="col-xl-3 col-md-6">
               <div class="premium-card kpi-card interactive-lift" onclick="App.switchView('inventory')">
                 <div class="kpi-header">
-                  <span class="kpi-title">Available Stock</span>
-                  <div class="kpi-icon-bubble bubble-rose"><i class="bi bi-box-seam"></i></div>
+                  <span class="kpi-title">Shelf Meat Stock</span>
+                  <div class="kpi-icon-bubble bubble-charcoal"><i class="bi bi-box-seam"></i></div>
                 </div>
                 <div class="kpi-value" id="kpi-stock-kg" data-value="0">0.0 kg</div>
                 <div class="kpi-subtext">
                   <span class="badge bg-danger pulse-badge" id="kpi-low-stock-count">0</span>
-                  <span>items low stock</span>
+                  <span>cuts below min threshold</span>
                 </div>
               </div>
             </div>
@@ -239,27 +329,27 @@
                   <small class="text-muted text-uppercase fw-bold">Total Sales Revenue</small>
                   <h4 class="mb-0 fw-bold text-dark" id="kpi-total-revenue">₹0.00</h4>
                 </div>
-                <button class="btn btn-sm btn-outline-success" onclick="App.switchView('reports')">View P&L</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="App.switchView('reports')">View P&L Statement</button>
               </div>
             </div>
             <div class="col-md-6">
               <div class="premium-card p-3 d-flex align-items-center justify-content-between">
                 <div>
-                  <small class="text-muted text-uppercase fw-bold">Total Shop Expenses</small>
+                  <small class="text-muted text-uppercase fw-bold">Shop Operational Expenses</small>
                   <h4 class="mb-0 fw-bold text-danger" id="kpi-total-expenses">₹0.00</h4>
                 </div>
-                <button class="btn btn-sm btn-outline-danger" onclick="App.switchView('expenses')">Manage Expenses</button>
+                <button class="btn btn-sm btn-outline-dark" onclick="App.switchView('expenses')">Manage Expenses</button>
               </div>
             </div>
           </div>
 
-          <!-- Charts & Alerts Row -->
+          <!-- Charts Row -->
           <div class="row g-4 mb-4">
             <div class="col-lg-8">
               <div class="premium-card h-100">
                 <div class="section-header">
                   <div>
-                    <h5 class="section-title mb-0">Sales Revenue vs Cost Trend</h5>
+                    <h5 class="section-title mb-0">Daily Sales Revenue vs Meat Cost</h5>
                     <small class="text-muted">7-day performance curve</small>
                   </div>
                   <button class="btn btn-sm btn-fresh-secondary" onclick="DashboardModule.load()">
@@ -275,38 +365,36 @@
             <div class="col-lg-4">
               <div class="premium-card h-100">
                 <div class="section-header">
-                  <h5 class="section-title mb-0">Category Share</h5>
+                  <h5 class="section-title mb-0">Revenue by Cut Category</h5>
                 </div>
                 <div style="height: 240px; position: relative;">
                   <canvas id="dash-category-chart"></canvas>
                 </div>
                 <div class="mt-3 text-center">
-                  <small class="text-muted">Revenue contribution by cut category</small>
+                  <small class="text-muted">Poultry, Chevon/Mutton, Seafood, Beef & Deli</small>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Low Stock Alerts & Recent Transactions -->
+          <!-- Stock Alerts & Recent Transactions -->
           <div class="row g-4">
             <div class="col-lg-5">
               <div class="premium-card h-100">
                 <div class="section-header">
                   <h5 class="section-title text-danger mb-0">
-                    <i class="bi bi-bell-fill me-1"></i> Stock Alert Thresholds
+                    <i class="bi bi-exclamation-octagon-fill me-1"></i> Stock Reorder & Out of Stock
                   </h5>
                   <button class="btn btn-sm btn-fresh-secondary" onclick="App.switchView('inventory')">View All</button>
                 </div>
-                <div id="dash-low-stock-list">
-                  <!-- Dynamic alert cards -->
-                </div>
+                <div id="dash-low-stock-list"></div>
               </div>
             </div>
 
             <div class="col-lg-7">
               <div class="premium-card h-100">
                 <div class="section-header">
-                  <h5 class="section-title mb-0">Recent Counter Transactions</h5>
+                  <h5 class="section-title mb-0">Recent Counter Receipts</h5>
                   <button class="btn btn-sm btn-fresh-primary ripple-btn" onclick="App.switchView('pos')">
                     <i class="bi bi-plus-circle"></i> New Bill
                   </button>
@@ -322,9 +410,7 @@
                         <th class="text-end">Amount</th>
                       </tr>
                     </thead>
-                    <tbody id="dash-recent-tx-body">
-                      <!-- Transactions injected dynamically -->
-                    </tbody>
+                    <tbody id="dash-recent-tx-body"></tbody>
                   </table>
                 </div>
               </div>
@@ -338,10 +424,10 @@
             <div class="col-md-4">
               <div class="premium-card interactive-lift">
                 <div class="kpi-header">
-                  <span class="kpi-title">My Sales Today</span>
-                  <div class="kpi-icon-bubble bubble-green"><i class="bi bi-wallet2"></i></div>
+                  <span class="kpi-title">My Counter Sales Today</span>
+                  <div class="kpi-icon-bubble bubble-crimson"><i class="bi bi-wallet2"></i></div>
                 </div>
-                <div class="kpi-value text-success" id="emp-today-sales">₹0.00</div>
+                <div class="kpi-value text-danger" id="emp-today-sales">₹0.00</div>
                 <small class="text-muted">Total value billed by your terminal</small>
               </div>
             </div>
@@ -349,8 +435,8 @@
             <div class="col-md-4">
               <div class="premium-card interactive-lift">
                 <div class="kpi-header">
-                  <span class="kpi-title">Bills Created</span>
-                  <div class="kpi-icon-bubble bubble-blue"><i class="bi bi-receipt"></i></div>
+                  <span class="kpi-title">Bills Generated</span>
+                  <div class="kpi-icon-bubble bubble-charcoal"><i class="bi bi-receipt"></i></div>
                 </div>
                 <div class="kpi-value" id="emp-today-bills">0</div>
                 <small class="text-muted">Completed customer receipts today</small>
@@ -360,11 +446,11 @@
             <div class="col-md-4">
               <div class="premium-card interactive-lift" onclick="App.switchView('pos')">
                 <div class="kpi-header">
-                  <span class="kpi-title">Quick POS</span>
-                  <div class="kpi-icon-bubble bubble-emerald"><i class="bi bi-cart-plus"></i></div>
+                  <span class="kpi-title">High-Speed POS</span>
+                  <div class="kpi-icon-bubble bubble-maroon"><i class="bi bi-lightning-charge-fill"></i></div>
                 </div>
                 <button class="btn btn-fresh-primary w-100 mt-2 py-2">
-                  <i class="bi bi-lightning-charge-fill me-1"></i> Open Billing Screen
+                  <i class="bi bi-receipt-cutoff me-1"></i> Open POS Screen
                 </button>
               </div>
             </div>
@@ -403,42 +489,36 @@
             <div class="pos-search-wrapper">
               <i class="bi bi-search pos-search-icon"></i>
               <input type="text" class="pos-search-input" id="pos-search-bar"
-                     placeholder="Search fresh cuts by name or code (e.g. Chicken curry cut, Mutton chops, Pomfret)..."
+                     placeholder="Search fresh cuts by name or code (e.g. Chicken Curry Cut, Mutton Chops, Pomfret, Beef)..."
                      oninput="POSModule.filterProducts(this.value)">
             </div>
 
-            <div class="pos-category-bar" id="pos-category-bar">
-              <!-- Category pills dynamically injected -->
-            </div>
+            <div class="pos-category-bar" id="pos-category-bar"></div>
 
-            <div class="pos-product-grid" id="pos-product-grid">
-              <!-- Product cards injected -->
-            </div>
+            <div class="pos-product-grid" id="pos-product-grid"></div>
           </div>
 
           <!-- Right: Cart & Checkout Drawer -->
           <div class="pos-cart-panel">
             <div class="pos-cart-header">
               <div class="pos-cart-title">
-                <i class="bi bi-cart4 text-success fs-5"></i> Current Bill
+                <i class="bi bi-basket3-fill text-danger fs-5"></i> Current Bill
               </div>
-              <button class="btn btn-sm btn-link text-danger p-0" onclick="POSModule.clearCart()">
+              <button class="btn btn-sm btn-link text-danger p-0 fw-bold" onclick="POSModule.clearCart()">
                 <i class="bi bi-trash"></i> Clear
               </button>
             </div>
 
             <!-- Customer Picker -->
             <div class="p-3 pb-0">
-              <label class="form-label mb-1" style="font-size: 0.78rem; font-weight: 600;">Customer Account</label>
+              <label class="form-label mb-1" style="font-size: 0.78rem; font-weight: 700;">Customer Account</label>
               <select class="form-select form-select-sm" id="pos-customer-select">
                 <option value="">Walk-in Retail Customer</option>
               </select>
             </div>
 
             <!-- Cart Items List -->
-            <div class="pos-cart-items-box" id="pos-cart-items">
-              <!-- Cart rows injected -->
-            </div>
+            <div class="pos-cart-items-box" id="pos-cart-items"></div>
 
             <!-- Cart Summary & Actions -->
             <div class="pos-cart-summary">
@@ -455,7 +535,7 @@
               </div>
 
               <div class="summary-line">
-                <span>Tax / GST (5%):</span>
+                <span>GST / Tax (5%):</span>
                 <span id="pos-tax">₹0.00</span>
               </div>
 
@@ -482,11 +562,11 @@
 
               <!-- UPI QR Preview Helper -->
               <div id="pos-upi-preview" class="p-2 mb-2 text-center rounded bg-light border" style="display: none;">
-                <small class="text-success fw-bold"><i class="bi bi-qr-code-scan"></i> Scan UPI to Pay <span id="pos-upi-amount">₹0.00</span></small>
-                <div class="text-muted" style="font-size: 0.72rem;">VPA: freshcuts@upi • Instant Verification</div>
+                <small class="text-danger fw-bold"><i class="bi bi-qr-code-scan"></i> Scan UPI to Pay <span id="pos-upi-amount">₹0.00</span></small>
+                <div class="text-muted" style="font-size: 0.72rem;">VPA: freshcuts@upi • Instant Settlement</div>
               </div>
 
-              <input type="text" id="pos-bill-notes" class="form-control form-control-sm mb-2" placeholder="Optional invoice notes / customer instructions">
+              <input type="text" id="pos-bill-notes" class="form-control form-control-sm mb-2" placeholder="Optional butchery instruction / note">
 
               <button class="btn btn-fresh-primary w-100 py-2 fs-6 ripple-btn" id="pos-checkout-btn" onclick="POSModule.processCheckout()">
                 <i class="bi bi-printer-fill me-2"></i> Complete Sale & Print Bill
@@ -505,17 +585,18 @@
         <div class="premium-card">
           <div class="section-header">
             <div>
-              <h5 class="section-title mb-0">Products & Fresh Meat Cuts</h5>
-              <small class="text-muted">Manage cuts, categories, units (KG / Pcs) and selling prices</small>
+              <h5 class="section-title mb-0">Meat Cuts & Pricing Catalog</h5>
+              <small class="text-muted">Manage cuts, photography, categories, units (KG / Pcs) and selling prices</small>
             </div>
             <button class="btn btn-fresh-primary ripple-btn admin-only" onclick="ProductsModule.openAddModal()">
-              <i class="bi bi-plus-lg"></i> Add New Product Cut
+              <i class="bi bi-plus-lg"></i> Add New Meat Cut
             </button>
           </div>
           <div class="table-responsive">
             <table class="table-custom">
               <thead>
                 <tr>
+                  <th>Cut Photo</th>
                   <th>Code</th>
                   <th>Product Name & Cut</th>
                   <th>Category</th>
@@ -541,7 +622,7 @@
           <div class="section-header">
             <div>
               <h5 class="section-title mb-0">Stock Balances & Thresholds</h5>
-              <small class="text-muted">Real-time butcher inventory levels and low-stock warnings</small>
+              <small class="text-muted">Real-time butcher inventory levels and out of stock warnings</small>
             </div>
             <button class="btn btn-fresh-secondary" onclick="InventoryModule.load()">
               <i class="bi bi-arrow-clockwise"></i> Refresh Stock
@@ -724,7 +805,6 @@
            VIEW 9: REPORTS & P&L ANALYTICS
            ========================================== -->
       <div id="view-reports" class="view-container" style="display: none;">
-        <!-- Filters & Export Bar -->
         <div class="premium-card mb-4 p-3">
           <div class="row g-3 align-items-center">
             <div class="col-md-3">
@@ -749,7 +829,6 @@
           </div>
         </div>
 
-        <!-- Profit & Loss Summary Card -->
         <div class="row g-4 mb-4">
           <div class="col-lg-6">
             <div class="premium-card h-100">
@@ -759,18 +838,17 @@
                   <tr><td>Gross Sales (Subtotal)</td><td class="text-end fw-bold" id="pnl-gross-sales">₹0.00</td></tr>
                   <tr><td>Discounts Allowed</td><td class="text-end text-danger" id="pnl-discounts">₹0.00</td></tr>
                   <tr><td>Taxes (GST)</td><td class="text-end" id="pnl-tax">₹0.00</td></tr>
-                  <tr class="table-light"><td class="fw-bold">Net Sales Revenue</td><td class="text-end fw-bold text-primary" id="pnl-net-revenue">₹0.00</td></tr>
+                  <tr class="table-light"><td class="fw-bold">Net Sales Revenue</td><td class="text-end fw-bold text-danger" id="pnl-net-revenue">₹0.00</td></tr>
                   <tr><td>Cost of Goods Sold (COGS)</td><td class="text-end text-muted" id="pnl-cogs">₹0.00</td></tr>
-                  <tr class="table-success"><td class="fw-bold">Gross Profit</td><td class="text-end fw-bold text-success" id="pnl-gross-profit">₹0.00</td></tr>
+                  <tr class="table-danger"><td class="fw-bold">Gross Profit</td><td class="text-end fw-bold text-danger" id="pnl-gross-profit">₹0.00</td></tr>
                   <tr><td>Wastage & Trimming Loss</td><td class="text-end text-danger" id="pnl-wastage">₹0.00</td></tr>
                   <tr><td>Operating Expenses</td><td class="text-end text-danger" id="pnl-expenses">₹0.00</td></tr>
-                  <tr class="table-warning"><td class="fw-bold fs-5">Net Operating Result</td><td class="text-end" id="pnl-net-result">₹0.00</td></tr>
+                  <tr class="table-light"><td class="fw-bold fs-5">Net Operating Result</td><td class="text-end" id="pnl-net-result">₹0.00</td></tr>
                 </tbody>
               </table>
             </div>
           </div>
 
-          <!-- Employee Performance -->
           <div class="col-lg-6">
             <div class="premium-card h-100">
               <h5 class="section-title mb-3">Cashier Sales Performance</h5>
@@ -791,9 +869,8 @@
           </div>
         </div>
 
-        <!-- Product Sales Ranking -->
         <div class="premium-card">
-          <h5 class="section-title mb-3">Product-wise Sales & Profit Breakdown</h5>
+          <h5 class="section-title mb-3">Product-wise Sales & Margin Breakdown</h5>
           <div class="table-responsive">
             <table class="table-custom">
               <thead>
@@ -820,11 +897,11 @@
         <div class="premium-card">
           <div class="section-header">
             <div>
-              <h5 class="section-title mb-0">Employee Accounts & Permissions</h5>
+              <h5 class="section-title mb-0">Staff & Cashier Accounts</h5>
               <small class="text-muted">Create cashier accounts, assign roles, and manage system access</small>
             </div>
             <button class="btn btn-fresh-primary ripple-btn" onclick="UsersModule.openAddModal()">
-              <i class="bi bi-person-plus-fill"></i> Create Employee Account
+              <i class="bi bi-person-plus-fill"></i> Create Staff Account
             </button>
           </div>
           <div class="table-responsive">
@@ -946,9 +1023,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-4 bg-light">
-        <div id="thermal-receipt-area" class="thermal-receipt">
-          <!-- Dynamic receipt generated by POSModule -->
-        </div>
+        <div id="thermal-receipt-area" class="thermal-receipt"></div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-fresh-secondary" data-bs-dismiss="modal">Close</button>
@@ -960,12 +1035,12 @@
   </div>
 </div>
 
-<!-- 2. Product Add/Edit Modal -->
+<!-- 2. Product Add/Edit Modal (With Image URL) -->
 <div class="modal fade" id="productModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content modal-content-fresh">
       <div class="modal-header modal-header-fresh">
-        <h5 class="modal-title">Product Cut Details</h5>
+        <h5 class="modal-title">Meat Cut Details</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <form id="product-form" onsubmit="ProductsModule.saveProduct(event)">
@@ -977,23 +1052,23 @@
               <input type="text" id="prod-code" class="form-control" placeholder="CHK-06" required>
             </div>
             <div class="col-md-8">
-              <label class="form-label">Product Name</label>
+              <label class="form-label">Product Cut Name</label>
               <input type="text" id="prod-name" class="form-control" placeholder="e.g. Chicken Boneless" required>
             </div>
             <div class="col-md-6">
               <label class="form-label">Category</label>
               <select id="prod-category" class="form-select" required>
-                <option value="Chicken">Chicken</option>
-                <option value="Mutton">Mutton</option>
-                <option value="Seafood">Seafood</option>
-                <option value="Beef">Beef</option>
+                <option value="Chicken">Chicken (Poultry)</option>
+                <option value="Mutton">Mutton (Chevon/Lamb)</option>
+                <option value="Seafood">Seafood (Fish/Prawns)</option>
+                <option value="Beef">Beef & Veal</option>
                 <option value="Cold Cuts & Marinades">Cold Cuts & Marinades</option>
               </select>
             </div>
             <div class="col-md-6">
               <label class="form-label">Unit Type</label>
               <select id="prod-unit" class="form-select" required>
-                <option value="kg">kg (Weight based)</option>
+                <option value="kg">kg (Weight scale)</option>
                 <option value="pcs">pcs (Piece based)</option>
                 <option value="pack">pack (Pre-packaged)</option>
               </select>
@@ -1017,14 +1092,18 @@
               </div>
             </div>
             <div class="col-12">
-              <label class="form-label">Description / Butchery Note</label>
+              <label class="form-label">Cut Photo URL (Meat image link)</label>
+              <input type="url" id="prod-image-url" class="form-control" placeholder="https://images.unsplash.com/...">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Butchery Description</label>
               <textarea id="prod-description" class="form-control" rows="2"></textarea>
             </div>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-fresh-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-fresh-primary ripple-btn">Save Product</button>
+          <button type="submit" class="btn btn-fresh-primary ripple-btn">Save Meat Cut</button>
         </div>
       </form>
     </div>
@@ -1035,7 +1114,7 @@
 <div class="modal fade" id="adjustModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content modal-content-fresh">
-      <div class="modal-header modal-header-fresh bg-danger">
+      <div class="modal-header modal-header-fresh">
         <h5 class="modal-title"><i class="bi bi-scissors me-2"></i> Log Stock Wastage / Trimming Loss</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
@@ -1058,12 +1137,12 @@
           </div>
           <div class="mb-3">
             <label class="form-label">Reason / Butchery Remarks</label>
-            <input type="text" id="adj-reason" class="form-control" placeholder="e.g. Skin & excess fat trimming loss" required>
+            <input type="text" id="adj-reason" class="form-control" placeholder="e.g. Bone & skin trimming loss" required>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-fresh-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-danger ripple-btn">Record Stock Deduction</button>
+          <button type="submit" class="btn btn-fresh-danger ripple-btn">Record Stock Deduction</button>
         </div>
       </form>
     </div>
@@ -1264,7 +1343,7 @@
   </div>
 </div>
 
-<!-- 8. Employee User Modal -->
+<!-- 8. Staff Account Modal -->
 <div class="modal fade" id="userModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content modal-content-fresh">

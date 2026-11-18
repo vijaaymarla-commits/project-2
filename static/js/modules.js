@@ -1,5 +1,6 @@
 /* ==========================================================
-   FRESH CUT MEAT SHOP - MANAGEMENT MODULES
+   FRESH CUT MEAT SHOP - MANAGEMENT MODULES (ENHANCED)
+   With Meat Images & Stock Badging
    ========================================================== */
 
 // 1. PRODUCTS MODULE
@@ -11,39 +12,54 @@ const ProductsModule = {
       if (!tbody) return;
 
       const isAdmin = App.user.role === 'admin';
-      tbody.innerHTML = (res.products || []).map(p => `
-        <tr>
-          <td class="fw-bold">${p.code}</td>
-          <td>
-            <div class="fw-bold text-dark">${p.name}</div>
-            <small class="text-muted">${p.description || ''}</small>
-          </td>
-          <td><span class="badge-category cat-${p.category.toLowerCase().replace(/[^a-z]/g, '')}">${p.category}</span></td>
-          <td><span class="badge bg-light text-dark border">${p.unit}</span></td>
-          <td class="fw-bold text-success">₹${parseFloat(p.selling_price).toFixed(2)}</td>
-          ${isAdmin ? `<td class="text-muted">₹${parseFloat(p.cost_price).toFixed(2)}</td>` : ''}
-          <td>
-            <span class="badge ${p.current_stock <= p.min_stock ? 'bg-danger pulse-badge' : 'bg-success'}">
-              ${parseFloat(p.current_stock).toFixed(1)} ${p.unit}
-            </span>
-          </td>
-          <td>
-            <span class="badge ${p.is_active ? 'bg-success-subtle text-success' : 'bg-secondary'}">
-              ${p.is_active ? 'Active' : 'Inactive'}
-            </span>
-          </td>
-          ${isAdmin ? `
-            <td class="text-end">
-              <button class="btn btn-sm btn-outline-primary me-1" onclick="ProductsModule.editProduct('${p.id}')">
-                <i class="bi bi-pencil"></i>
-              </button>
-              <button class="btn btn-sm btn-outline-danger" onclick="ProductsModule.deleteProduct('${p.id}')">
-                <i class="bi bi-archive"></i>
-              </button>
+      const defaultMeatImg = 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=120&q=80';
+
+      tbody.innerHTML = (res.products || []).map(p => {
+        const stock = parseFloat(p.current_stock || 0);
+        const isOut = stock <= 0;
+        const img = p.image_url || defaultMeatImg;
+
+        return `
+          <tr>
+            <td style="width: 50px;">
+              <img src="${img}" alt="${p.name}" class="rounded shadow-sm" style="width: 44px; height: 44px; object-fit: cover;">
             </td>
-          ` : ''}
-        </tr>
-      `).join('');
+            <td class="fw-bold">${p.code}</td>
+            <td>
+              <div class="fw-bold text-dark">${p.name}</div>
+              <small class="text-muted">${p.description || ''}</small>
+            </td>
+            <td><span class="badge-category cat-${p.category.toLowerCase().replace(/[^a-z]/g, '')}">${p.category}</span></td>
+            <td><span class="badge bg-light text-dark border">${p.unit}</span></td>
+            <td class="fw-bold text-danger">₹${parseFloat(p.selling_price).toFixed(2)}</td>
+            ${isAdmin ? `<td class="text-muted">₹${parseFloat(p.cost_price).toFixed(2)}</td>` : ''}
+            <td>
+              ${isOut ? `
+                <span class="badge-status-out">OUT OF STOCK</span>
+              ` : `
+                <span class="badge ${stock <= p.min_stock ? 'bg-danger pulse-badge' : 'bg-success'}">
+                  ${stock.toFixed(1)} ${p.unit}
+                </span>
+              `}
+            </td>
+            <td>
+              <span class="badge ${p.is_active ? 'bg-success-subtle text-success' : 'bg-secondary'}">
+                ${p.is_active ? 'Active' : 'Inactive'}
+              </span>
+            </td>
+            ${isAdmin ? `
+              <td class="text-end">
+                <button class="btn btn-sm btn-outline-danger me-1" title="Edit Cut" onclick="ProductsModule.editProduct('${p.id}')">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" title="Deactivate" onclick="ProductsModule.deleteProduct('${p.id}')">
+                  <i class="bi bi-archive"></i>
+                </button>
+              </td>
+            ` : ''}
+          </tr>
+        `;
+      }).join('');
     } catch (e) {
       console.error(e);
     }
@@ -69,6 +85,7 @@ const ProductsModule = {
       document.getElementById('prod-selling-price').value = p.selling_price;
       document.getElementById('prod-cost-price').value = p.cost_price || 0;
       document.getElementById('prod-min-stock').value = p.min_stock;
+      document.getElementById('prod-image-url').value = p.image_url || '';
       document.getElementById('prod-description').value = p.description || '';
       document.getElementById('prod-active').checked = p.is_active;
 
@@ -89,6 +106,7 @@ const ProductsModule = {
       selling_price: parseFloat(document.getElementById('prod-selling-price').value),
       cost_price: parseFloat(document.getElementById('prod-cost-price').value),
       min_stock: parseFloat(document.getElementById('prod-min-stock').value || 5),
+      image_url: document.getElementById('prod-image-url').value.trim(),
       description: document.getElementById('prod-description').value.trim(),
       is_active: document.getElementById('prod-active').checked
     };
@@ -96,10 +114,10 @@ const ProductsModule = {
     try {
       if (id) {
         await App.api(`/api/v1/products/${id}`, { method: 'PUT', body: payload });
-        AnimEngine.showToast('Product updated successfully.', 'success');
+        AnimEngine.showToast('Product cut updated successfully.', 'success');
       } else {
         await App.api('/api/v1/products', { method: 'POST', body: payload });
-        AnimEngine.showToast('New meat cut added to catalog.', 'success');
+        AnimEngine.showToast('New fresh cut added to catalog.', 'success');
       }
       bootstrap.Modal.getInstance(document.getElementById('productModal')).hide();
       this.load();
@@ -128,27 +146,35 @@ const InventoryModule = {
       const tbody = document.getElementById('inventory-table-body');
       if (!tbody) return;
 
-      tbody.innerHTML = (res.inventory || []).map(item => `
-        <tr>
-          <td class="fw-bold">${item.code}</td>
-          <td><div class="fw-bold">${item.name}</div></td>
-          <td><span class="badge bg-light text-dark border">${item.category}</span></td>
-          <td class="fw-bold fs-6 ${item.is_low_stock ? 'text-danger' : 'text-success'}">
-            ${parseFloat(item.current_stock).toFixed(2)} ${item.unit}
-          </td>
-          <td>${parseFloat(item.min_stock).toFixed(1)} ${item.unit}</td>
-          <td>
-            <span class="${item.is_low_stock ? 'badge-status-low pulse-badge' : 'badge-status-ok'}">
-              ${item.is_low_stock ? '<i class="bi bi-exclamation-triangle"></i> LOW STOCK' : '<i class="bi bi-check2"></i> Sufficient'}
-            </span>
-          </td>
-          <td class="text-end admin-only">
-            <button class="btn btn-sm btn-outline-danger" onclick="InventoryModule.openAdjustModal('${item.product_id}', '${item.name}', '${item.unit}', ${item.current_stock})">
-              <i class="bi bi-scissors me-1"></i> Log Wastage / Trim
-            </button>
-          </td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = (res.inventory || []).map(item => {
+        const stock = parseFloat(item.current_stock || 0);
+        const isOut = stock <= 0;
+        return `
+          <tr>
+            <td class="fw-bold">${item.code}</td>
+            <td><div class="fw-bold text-dark">${item.name}</div></td>
+            <td><span class="badge bg-light text-dark border">${item.category}</span></td>
+            <td class="fw-bold fs-6 ${isOut ? 'text-secondary' : item.is_low_stock ? 'text-danger' : 'text-success'}">
+              ${stock.toFixed(2)} ${item.unit}
+            </td>
+            <td>${parseFloat(item.min_stock).toFixed(1)} ${item.unit}</td>
+            <td>
+              ${isOut ? `
+                <span class="badge-status-out">OUT OF STOCK</span>
+              ` : `
+                <span class="${item.is_low_stock ? 'badge-status-low pulse-badge' : 'badge-status-ok'}">
+                  ${item.is_low_stock ? '<i class="bi bi-exclamation-triangle"></i> LOW STOCK' : '<i class="bi bi-check2"></i> Sufficient'}
+                </span>
+              `}
+            </td>
+            <td class="text-end admin-only">
+              <button class="btn btn-sm btn-outline-danger" onclick="InventoryModule.openAdjustModal('${item.product_id}', '${item.name}', '${item.unit}', ${item.current_stock})">
+                <i class="bi bi-scissors me-1"></i> Log Wastage / Trim
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
 
       this.loadMovements();
     } catch (e) {
@@ -167,7 +193,7 @@ const InventoryModule = {
           <td><small class="text-muted">${new Date(m.created_at).toLocaleString()}</small></td>
           <td class="fw-bold">${m.product_name}</td>
           <td>
-            <span class="badge ${m.movement_type === 'SALE' ? 'bg-info' : m.movement_type === 'PURCHASE' ? 'bg-success' : 'bg-danger'}">
+            <span class="badge ${m.movement_type === 'SALE' ? 'bg-danger' : m.movement_type === 'PURCHASE' ? 'bg-success' : 'bg-dark'}">
               ${m.movement_type}
             </span>
           </td>
@@ -329,7 +355,7 @@ const PurchasesModule = {
 
       tbody.innerHTML = (res.purchases || []).map(p => `
         <tr>
-          <td class="fw-bold text-primary">${p.purchase_no}</td>
+          <td class="fw-bold text-danger">${p.purchase_no}</td>
           <td>${p.supplier_name}</td>
           <td>${new Date(p.purchase_date).toLocaleDateString()}</td>
           <td><span class="badge bg-success">${p.status}</span></td>
@@ -348,7 +374,6 @@ const PurchasesModule = {
   },
 
   async openAddModal() {
-    // Populate suppliers and products
     const [sups, prods] = await Promise.all([
       App.api('/api/v1/suppliers'),
       App.api('/api/v1/products')
@@ -384,7 +409,7 @@ const PurchasesModule = {
 
     try {
       await App.api('/api/v1/purchases', { method: 'POST', body: payload });
-      AnimEngine.showToast('Purchase order saved and stock incremented!', 'success');
+      AnimEngine.showToast('Inbound meat delivery recorded and stock incremented!', 'success');
       bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
       this.load();
     } catch (err) {
@@ -435,7 +460,7 @@ const ExpensesModule = {
     };
     try {
       await App.api('/api/v1/expenses', { method: 'POST', body: payload });
-      AnimEngine.showToast('Expense recorded successfully.', 'success');
+      AnimEngine.showToast('Shop operational expense recorded.', 'success');
       bootstrap.Modal.getInstance(document.getElementById('expenseModal')).hide();
       this.load();
     } catch (err) {
@@ -461,7 +486,6 @@ const ReportsModule = {
         App.api(`/api/v1/reports/employees?${query}`)
       ]);
 
-      // Render P&L Statement
       document.getElementById('pnl-gross-sales').innerText = `₹${pnl.gross_sales.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
       document.getElementById('pnl-discounts').innerText = `- ₹${pnl.total_discounts.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
       document.getElementById('pnl-tax').innerText = `₹${pnl.total_tax.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
@@ -475,7 +499,6 @@ const ReportsModule = {
       netProfitEl.innerText = `₹${pnl.net_operating_result.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
       netProfitEl.className = `fw-bold fs-4 ${pnl.net_operating_result >= 0 ? 'text-success' : 'text-danger'}`;
 
-      // Render Product Ranking Table
       const prodBody = document.getElementById('rep-products-body');
       prodBody.innerHTML = (prodSales.product_sales || []).map(p => `
         <tr>
@@ -488,13 +511,12 @@ const ReportsModule = {
         </tr>
       `).join('');
 
-      // Render Employee Performance Table
       const empBody = document.getElementById('rep-employees-body');
       empBody.innerHTML = (empSales.employee_sales || []).map(e => `
         <tr>
           <td class="fw-bold">${e.cashier_name}</td>
-          <td><span class="badge bg-primary-subtle text-primary">${e.total_bills} bills</span></td>
-          <td class="fw-bold text-success">₹${parseFloat(e.total_revenue).toFixed(2)}</td>
+          <td><span class="badge bg-danger-subtle text-danger fw-bold">${e.total_bills} bills</span></td>
+          <td class="fw-bold text-dark">₹${parseFloat(e.total_revenue).toFixed(2)}</td>
           <td>₹${parseFloat(e.avg_bill_value).toFixed(2)}</td>
         </tr>
       `).join('');
@@ -562,7 +584,7 @@ const UsersModule = {
     };
     try {
       await App.api('/api/v1/auth/users', { method: 'POST', body: payload });
-      AnimEngine.showToast('Employee account created successfully.', 'success');
+      AnimEngine.showToast('Staff member account created.', 'success');
       bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
       this.load();
     } catch (err) {
@@ -576,7 +598,7 @@ const UsersModule = {
         method: 'PUT',
         body: { is_active: newStatus }
       });
-      AnimEngine.showToast('User status updated.', 'success');
+      AnimEngine.showToast('Staff account status updated.', 'success');
       this.load();
     } catch (e) {
       console.error(e);

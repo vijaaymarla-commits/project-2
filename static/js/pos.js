@@ -1,5 +1,6 @@
 /* ==========================================================
-   FRESH CUT MEAT SHOP - POS BILLING MODULE
+   FRESH CUT MEAT SHOP - POS BILLING MODULE (ENHANCED)
+   With Meat Imagery, Out-of-Stock Handling & Fixed Steppers
    ========================================================== */
 
 const POSModule = {
@@ -57,12 +58,12 @@ const POSModule = {
 
   getCategoryIcon(cat) {
     switch (cat) {
-      case 'Chicken': return '<i class="bi bi-egg-fried"></i>';
-      case 'Mutton': return '<i class="bi bi-shield-shaded"></i>';
-      case 'Seafood': return '<i class="bi bi-water"></i>';
-      case 'Beef': return '<i class="bi bi-fire"></i>';
-      case 'Cold Cuts & Marinades': return '<i class="bi bi-box2-heart"></i>';
-      default: return '<i class="bi bi-grid-fill"></i>';
+      case 'Chicken': return '🍗';
+      case 'Mutton': return '🥩';
+      case 'Seafood': return '🐟';
+      case 'Beef': return '🥩';
+      case 'Cold Cuts & Marinades': return '🥓';
+      default: return '🔪';
     }
   },
 
@@ -94,45 +95,88 @@ const POSModule = {
       return;
     }
 
-    grid.innerHTML = items.map(p => `
-      <div class="pos-item-card" onclick="POSModule.addToCart('${p.id}', event)">
-        <div>
-          <div class="pos-card-cat">${p.category}</div>
-          <div class="pos-card-name">${p.name}</div>
-        </div>
-        <div class="pos-card-footer">
-          <div>
-            <div class="pos-card-price">₹${parseFloat(p.selling_price).toFixed(2)}</div>
-            <div class="pos-card-unit">per ${p.unit}</div>
+    // Default meat placeholder image if none assigned
+    const defaultMeatImg = 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=500&q=80';
+
+    grid.innerHTML = items.map(p => {
+      const stock = parseFloat(p.current_stock || 0);
+      const isOut = stock <= 0;
+      const isLow = stock > 0 && stock <= parseFloat(p.min_stock || 5);
+      const imgUrl = p.image_url || defaultMeatImg;
+
+      return `
+        <div class="pos-item-card ${isOut ? 'is-out-of-stock' : ''}"
+             onclick="POSModule.handleCardClick('${p.id}', event, ${isOut})">
+          
+          <div class="pos-item-img-box">
+            <img src="${imgUrl}" alt="${p.name}" class="pos-item-img" loading="lazy">
+            <span class="pos-item-category-tag">${p.category}</span>
+            ${isOut ? '<div class="out-of-stock-ribbon"><i class="bi bi-x-circle-fill me-1"></i> OUT OF STOCK</div>' : ''}
           </div>
-          <div>
-            <span class="pos-card-stock ${p.current_stock <= p.min_stock ? 'stock-low' : 'stock-in'}">
-              ${parseFloat(p.current_stock).toFixed(1)} ${p.unit}
-            </span>
+
+          <div class="pos-item-body">
+            <div class="pos-card-name">${p.name}</div>
+            
+            <div class="pos-card-footer">
+              <div>
+                <div class="pos-card-price">₹${parseFloat(p.selling_price).toFixed(2)}</div>
+                <div class="pos-card-unit">per ${p.unit}</div>
+              </div>
+              <div>
+                ${isOut ? `
+                  <span class="badge-status-out">Out of Stock</span>
+                ` : isLow ? `
+                  <span class="pos-card-stock stock-low">Low: ${stock.toFixed(1)} ${p.unit}</span>
+                ` : `
+                  <span class="pos-card-stock stock-in">${stock.toFixed(1)} ${p.unit}</span>
+                `}
+              </div>
+            </div>
           </div>
+
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
+  },
+
+  handleCardClick(productId, event, isOut) {
+    if (isOut) {
+      AnimEngine.showToast('Sorry! This cut is currently OUT OF STOCK.', 'error');
+      return;
+    }
+    this.addToCart(productId, event);
   },
 
   addToCart(productId, event = null) {
     const prod = this.products.find(p => p.id === productId);
     if (!prod) return;
 
-    if (prod.current_stock <= 0) {
-      AnimEngine.showToast(`Warning: '${prod.name}' is currently out of stock.`, 'warning');
+    const availableStock = parseFloat(prod.current_stock || 0);
+    if (availableStock <= 0) {
+      AnimEngine.showToast(`Cannot add '${prod.name}' - item is out of stock!`, 'error');
+      return;
     }
 
+    const step = prod.unit === 'kg' ? 0.5 : 1;
     const existing = this.cart.find(item => item.product_id === productId);
+
     if (existing) {
-      existing.quantity = Math.round((existing.quantity + (prod.unit === 'kg' ? 0.5 : 1)) * 100) / 100;
+      const nextQty = Math.round((existing.quantity + step) * 100) / 100;
+      if (nextQty > availableStock) {
+        AnimEngine.showToast(`Stock limit reached! Only ${availableStock} ${prod.unit} available.`, 'warning');
+        existing.quantity = availableStock;
+      } else {
+        existing.quantity = nextQty;
+      }
     } else {
+      const initialQty = prod.unit === 'kg' ? 1.0 : 1;
       this.cart.push({
         product_id: prod.id,
         name: prod.name,
         unit: prod.unit,
         price: parseFloat(prod.selling_price),
-        quantity: prod.unit === 'kg' ? 1.0 : 1
+        quantity: Math.min(initialQty, availableStock),
+        max_stock: availableStock
       });
     }
 
@@ -145,20 +189,60 @@ const POSModule = {
     this.renderCart();
   },
 
+  // FIXED STEPPER INCREMENT
+  incrementQty(productId) {
+    const item = this.cart.find(i => i.product_id === productId);
+    if (!item) return;
+
+    const step = item.unit === 'kg' ? 0.5 : 1;
+    const nextQty = Math.round((parseFloat(item.quantity) + step) * 100) / 100;
+
+    if (item.max_stock && nextQty > item.max_stock) {
+      AnimEngine.showToast(`Cannot exceed current stock of ${item.max_stock} ${item.unit}!`, 'warning');
+      item.quantity = item.max_stock;
+    } else {
+      item.quantity = nextQty;
+    }
+    this.renderCart();
+  },
+
+  // FIXED STEPPER DECREMENT
+  decrementQty(productId) {
+    const item = this.cart.find(i => i.product_id === productId);
+    if (!item) return;
+
+    const step = item.unit === 'kg' ? 0.5 : 1;
+    const nextQty = Math.round((parseFloat(item.quantity) - step) * 100) / 100;
+
+    if (nextQty <= 0) {
+      this.removeFromCart(productId);
+    } else {
+      item.quantity = nextQty;
+      this.renderCart();
+    }
+  },
+
+  // MANUAL DIRECT INPUT UPDATE
   updateQuantity(productId, newQty) {
     const item = this.cart.find(i => i.product_id === productId);
     if (!item) return;
 
-    newQty = parseFloat(newQty);
-    if (isNaN(newQty) || newQty <= 0) {
+    let qty = parseFloat(newQty);
+    if (isNaN(qty) || qty <= 0) {
       this.removeFromCart(productId);
       return;
     }
 
-    if (item.unit in ('pcs', 'pack')) {
-      newQty = Math.round(newQty);
+    if (['pcs', 'pack'].includes(item.unit)) {
+      qty = Math.round(qty);
     }
-    item.quantity = newQty;
+
+    if (item.max_stock && qty > item.max_stock) {
+      AnimEngine.showToast(`Cannot exceed current stock of ${item.max_stock} ${item.unit}!`, 'warning');
+      qty = item.max_stock;
+    }
+
+    item.quantity = Math.round(qty * 100) / 100;
     this.renderCart();
   },
 
@@ -184,7 +268,6 @@ const POSModule = {
       else tab.classList.remove('active');
     });
 
-    // Show dynamic UPI QR code generator modal if UPI chosen
     const upiBadge = document.getElementById('pos-upi-preview');
     if (upiBadge) {
       upiBadge.style.display = method === 'UPI' ? 'block' : 'none';
@@ -201,9 +284,9 @@ const POSModule = {
     if (this.cart.length === 0) {
       container.innerHTML = `
         <div class="text-center py-5 text-muted">
-          <i class="bi bi-cart3 fs-1 d-block mb-2 text-slate-300"></i>
-          <p class="mb-0" style="font-size: 0.88rem;">Cart is empty.</p>
-          <small class="text-muted">Tap any meat cut on the left to add.</small>
+          <i class="bi bi-cart3 fs-1 d-block mb-2 text-danger opacity-50"></i>
+          <p class="mb-0 fw-bold" style="font-size: 0.95rem; color: #44403c;">Your cart is empty.</p>
+          <small class="text-muted">Tap any fresh cut on the left to add.</small>
         </div>
       `;
       this.updateSummary(0);
@@ -212,7 +295,8 @@ const POSModule = {
 
     let subtotal = 0;
     container.innerHTML = this.cart.map(item => {
-      const lineTotal = item.quantity * item.price;
+      const qty = parseFloat(item.quantity);
+      const lineTotal = Math.round(qty * item.price * 100) / 100;
       subtotal += lineTotal;
       const isKg = item.unit === 'kg';
 
@@ -220,16 +304,16 @@ const POSModule = {
         <div class="cart-item-row">
           <div class="cart-item-top">
             <div class="cart-item-name">${item.name}</div>
-            <button class="cart-item-del-btn" onclick="POSModule.removeFromCart('${item.product_id}')">
+            <button class="cart-item-del-btn" title="Remove Item" onclick="POSModule.removeFromCart('${item.product_id}')">
               <i class="bi bi-trash3"></i>
             </button>
           </div>
           <div class="cart-item-controls">
             <div class="qty-stepper">
-              <button class="stepper-btn" onclick="POSModule.updateQuantity('${item.product_id}', ${item.quantity - (isKg ? 0.25 : 1)})">-</button>
-              <input type="number" step="${isKg ? '0.05' : '1'}" min="0" class="stepper-val-input" value="${item.quantity}"
+              <button class="stepper-btn" type="button" onclick="POSModule.decrementQty('${item.product_id}')">-</button>
+              <input type="number" step="${isKg ? '0.1' : '1'}" min="0" class="stepper-val-input" value="${qty}"
                      onchange="POSModule.updateQuantity('${item.product_id}', this.value)">
-              <button class="stepper-btn" onclick="POSModule.updateQuantity('${item.product_id}', ${item.quantity + (isKg ? 0.25 : 1)})">+</button>
+              <button class="stepper-btn" type="button" onclick="POSModule.incrementQty('${item.product_id}')">+</button>
             </div>
             <div class="text-end">
               <div class="cart-item-total">₹${lineTotal.toFixed(2)}</div>
@@ -238,11 +322,11 @@ const POSModule = {
           </div>
           ${isKg ? `
             <div class="weight-shortcuts">
-              <button class="w-btn" onclick="POSModule.setPresetWeight('${item.product_id}', 0.25)">250g</button>
-              <button class="w-btn" onclick="POSModule.setPresetWeight('${item.product_id}', 0.5)">500g</button>
-              <button class="w-btn" onclick="POSModule.setPresetWeight('${item.product_id}', 0.75)">750g</button>
-              <button class="w-btn" onclick="POSModule.setPresetWeight('${item.product_id}', 1.0)">1 kg</button>
-              <button class="w-btn" onclick="POSModule.setPresetWeight('${item.product_id}', 2.0)">2 kg</button>
+              <button class="w-btn" type="button" onclick="POSModule.setPresetWeight('${item.product_id}', 0.25)">250g</button>
+              <button class="w-btn" type="button" onclick="POSModule.setPresetWeight('${item.product_id}', 0.5)">500g</button>
+              <button class="w-btn" type="button" onclick="POSModule.setPresetWeight('${item.product_id}', 0.75)">750g</button>
+              <button class="w-btn" type="button" onclick="POSModule.setPresetWeight('${item.product_id}', 1.0)">1 kg</button>
+              <button class="w-btn" type="button" onclick="POSModule.setPresetWeight('${item.product_id}', 2.0)">2 kg</button>
             </div>
           ` : ''}
         </div>
@@ -266,7 +350,6 @@ const POSModule = {
     document.getElementById('pos-tax').innerText = `₹${tax.toFixed(2)}`;
     document.getElementById('pos-total').innerText = `₹${total.toFixed(2)}`;
 
-    // Update UPI dynamic QR code amount if visible
     const upiAmt = document.getElementById('pos-upi-amount');
     if (upiAmt) upiAmt.innerText = `₹${total.toFixed(2)}`;
   },
@@ -298,7 +381,7 @@ const POSModule = {
     const checkoutBtn = document.getElementById('pos-checkout-btn');
     if (checkoutBtn) {
       checkoutBtn.disabled = true;
-      checkoutBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Finalizing Bill...';
+      checkoutBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Processing Sale...';
     }
 
     try {
@@ -307,9 +390,10 @@ const POSModule = {
         body: payload
       });
 
-      AnimEngine.showToast(`Invoice ${res.sale.invoice_no} completed!`, 'success');
+      AnimEngine.showToast(`Invoice ${res.sale.invoice_no} completed successfully!`, 'success');
       this.clearCart();
       await this.fetchProducts(); // Refresh stock balances
+      this.renderProducts();
       this.showReceiptModal(res.sale, res.settings);
     } catch (e) {
       console.error('Checkout error:', e);
@@ -329,8 +413,8 @@ const POSModule = {
     if (receiptBox) {
       receiptBox.innerHTML = `
         <div style="text-align: center;">
-          <h4 style="font-weight: 800; margin-bottom: 2px;">${settings.shop_name || 'FRESH CUT PRIME MEAT'}</h4>
-          <div style="font-size: 11px;">${settings.shop_tagline || 'Fresh & Tender Cuts Everyday'}</div>
+          <h4 style="font-weight: 900; margin-bottom: 2px; color: #881337;">${settings.shop_name || 'FRESH CUT PRIME MEAT'}</h4>
+          <div style="font-size: 11px; font-weight: bold;">${settings.shop_tagline || 'Artisanal Fresh & Tender Cuts Everyday'}</div>
           <div style="font-size: 10px;">${settings.shop_address || ''}</div>
           <div style="font-size: 10px;">Phone: ${settings.shop_phone || ''}</div>
           <div style="font-size: 10px;">GSTIN: ${settings.gstin_tax_id || ''}</div>
@@ -342,7 +426,7 @@ const POSModule = {
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 11px;">
           <span>Cashier: ${sale.cashier_name}</span>
-          <span>Pay: ${sale.payment_method}</span>
+          <span>Pay Mode: <b>${sale.payment_method}</b></span>
         </div>
         ${sale.customer_name ? `<div style="font-size: 11px;">Customer: ${sale.customer_name}</div>` : ''}
         <div class="receipt-divider"></div>
@@ -382,13 +466,13 @@ const POSModule = {
           <span>₹${parseFloat(sale.tax_amount).toFixed(2)}</span>
         </div>
         <div class="receipt-divider"></div>
-        <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold;">
+        <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; color: #881337;">
           <span>GRAND TOTAL:</span>
           <span>₹${parseFloat(sale.total_amount).toFixed(2)}</span>
         </div>
         <div class="receipt-divider"></div>
         <div style="text-align: center; font-size: 10px; margin-top: 8px;">
-          ${settings.receipt_footer_note || 'Thank you for choosing Fresh Cut!'}
+          ${settings.receipt_footer_note || 'Thank you for choosing Fresh Cut! Store meat between 0°C to 4°C.'}
         </div>
       `;
     }

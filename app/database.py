@@ -111,8 +111,8 @@ class Database:
         cur = conn.cursor()
         try:
             cur.execute('''
-            INSERT INTO public.products (id, code, name, category, unit, selling_price, cost_price, min_stock, description, is_active, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+            INSERT INTO public.products (id, code, name, category, unit, selling_price, cost_price, min_stock, description, image_url, is_active, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
             ON CONFLICT (id) DO UPDATE SET
                 code = EXCLUDED.code,
                 name = EXCLUDED.name,
@@ -122,11 +122,13 @@ class Database:
                 cost_price = EXCLUDED.cost_price,
                 min_stock = EXCLUDED.min_stock,
                 description = EXCLUDED.description,
+                image_url = EXCLUDED.image_url,
                 is_active = EXCLUDED.is_active,
                 updated_at = NOW()
             ''', (p_id, data['code'], data['name'], data['category'], data['unit'],
                   float(data['selling_price']), float(data['cost_price']),
                   float(data.get('min_stock', 5.0)), data.get('description', ''),
+                  data.get('image_url', ''),
                   bool(data.get('is_active', True))))
 
             # Ensure inventory entry exists
