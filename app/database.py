@@ -219,11 +219,15 @@ class Database:
             # Insert sale record
             cur.execute('''
             INSERT INTO public.sales (id, invoice_no, customer_id, cashier_id, cashier_name, subtotal, discount_amount,
-                                      tax_amount, total_amount, cost_total, payment_method, payment_status, notes, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                                      tax_amount, extra_charge_amount, extra_charge_label,
+                                      total_amount, cost_total, payment_method, payment_status, notes, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
             ''', (sale_id, invoice_no, sale_data.get('customer_id') or None, sale_data['cashier_id'], sale_data['cashier_name'],
                   float(sale_data['subtotal']), float(sale_data.get('discount_amount', 0.0)),
-                  float(sale_data.get('tax_amount', 0.0)), float(sale_data['total_amount']),
+                  float(sale_data.get('tax_amount', 0.0)),
+                  float(sale_data.get('extra_charge_amount', 0.0)),
+                  str(sale_data.get('extra_charge_label', 'Extra Charges')),
+                  float(sale_data['total_amount']),
                   float(sale_data.get('cost_total', 0.0)), sale_data['payment_method'],
                   sale_data.get('payment_status', 'COMPLETED'), sale_data.get('notes', '')))
 

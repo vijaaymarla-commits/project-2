@@ -9,8 +9,10 @@ const POSModule = {
   selectedCategory: 'All',
   selectedCustomer: null,
   paymentMethod: 'Cash',
-  taxRate: 5.0,
+  taxRate: 0,          // 0 = GST off by default (optional)
   discount: 0.0,
+  extraChargeAmount: 0.0,
+  extraChargeLabel: 'Extra Charges',
 
   async load() {
     await this.fetchProducts();
@@ -258,6 +260,18 @@ const POSModule = {
   clearCart() {
     this.cart = [];
     this.discount = 0.0;
+    this.extraChargeAmount = 0.0;
+    // Reset GST toggle
+    const gstToggle = document.getElementById('pos-gst-toggle');
+    if (gstToggle) gstToggle.checked = false;
+    // Reset extra charge toggle
+    const extraToggle = document.getElementById('pos-extra-toggle');
+    if (extraToggle) { extraToggle.checked = false; this.toggleExtraCharge(); }
+    // Reset input values
+    const discEl = document.getElementById('pos-discount-input');
+    if (discEl) discEl.value = 0;
+    const extraEl = document.getElementById('pos-extra-amount');
+    if (extraEl) extraEl.value = 0;
     this.renderCart();
   },
 
@@ -339,19 +353,62 @@ const POSModule = {
   updateSummary(subtotal) {
     const discountEl = document.getElementById('pos-discount-input');
     const discount = discountEl ? parseFloat(discountEl.value || 0) : 0;
-    this.discount = discount;
+    this.discount = Math.max(0, discount);
 
-    const discounted = Math.max(0, subtotal - discount);
-    const taxRate = this.taxRate;
-    const tax = discounted * (taxRate / 100.0);
-    const total = discounted + tax;
+    const discounted = Math.max(0, subtotal - this.discount);
+
+    // --- Optional GST ---
+    const gstToggle = document.getElementById('pos-gst-toggle');
+    const gstEnabled = gstToggle ? gstToggle.checked : false;
+    const gstRateBox = document.getElementById('pos-gst-rate-box');
+    const gstPctLabel = document.getElementById('pos-gst-pct-label');
+    if (gstRateBox) gstRateBox.style.display = gstEnabled ? 'block' : 'none';
+    if (gstPctLabel) gstPctLabel.style.display = gstEnabled ? 'inline' : 'none';
+
+    const gstRateInput = document.getElementById('pos-gst-rate');
+    const taxRate = (gstEnabled && gstRateInput) ? (parseFloat(gstRateInput.value) || 0) : 0;
+    this.taxRate = taxRate;
+    const tax = gstEnabled ? Math.round(discounted * (taxRate / 100) * 100) / 100 : 0;
+
+    const taxEl = document.getElementById('pos-tax');
+    if (taxEl) {
+      taxEl.innerText = gstEnabled ? `₹${tax.toFixed(2)} (${taxRate}%)` : '—';
+      taxEl.className = gstEnabled ? 'text-danger fw-bold' : 'text-muted';
+    }
+
+    // --- Optional Extra Charges ---
+    const extraToggle = document.getElementById('pos-extra-toggle');
+    const extraEnabled = extraToggle ? extraToggle.checked : false;
+    const extraAmount = extraEnabled
+      ? (parseFloat((document.getElementById('pos-extra-amount') || {}).value) || 0)
+      : 0;
+    const extraDisplay = document.getElementById('pos-extra-display');
+    if (extraDisplay) {
+      extraDisplay.innerText = extraEnabled ? `₹${extraAmount.toFixed(2)}` : '—';
+      extraDisplay.className = extraEnabled ? 'text-warning fw-bold' : 'text-muted';
+    }
+    this.extraChargeAmount = extraAmount;
+    this.extraChargeLabel = (document.getElementById('pos-extra-label') || {}).value || 'Extra Charges';
+
+    const total = Math.round((discounted + tax + extraAmount) * 100) / 100;
 
     document.getElementById('pos-subtotal').innerText = `₹${subtotal.toFixed(2)}`;
-    document.getElementById('pos-tax').innerText = `₹${tax.toFixed(2)}`;
     document.getElementById('pos-total').innerText = `₹${total.toFixed(2)}`;
 
     const upiAmt = document.getElementById('pos-upi-amount');
     if (upiAmt) upiAmt.innerText = `₹${total.toFixed(2)}`;
+  },
+
+  toggleExtraCharge() {
+    const extraToggle = document.getElementById('pos-extra-toggle');
+    const isOn = extraToggle ? extraToggle.checked : false;
+    const labelInput = document.getElementById('pos-extra-label');
+    const staticLabel = document.getElementById('pos-extra-static-label');
+    const amtBox = document.getElementById('pos-extra-amt-box');
+    if (labelInput) labelInput.style.display = isOn ? 'block' : 'none';
+    if (staticLabel) staticLabel.style.display = isOn ? 'none' : 'inline';
+    if (amtBox) amtBox.style.display = isOn ? 'block' : 'none';
+    this.renderCart();
   },
 
   async processCheckout() {
@@ -369,7 +426,9 @@ const POSModule = {
       customer_id: customerId || null,
       payment_method: this.paymentMethod,
       discount_amount: this.discount,
-      tax_rate: this.taxRate,
+      tax_rate: this.taxRate || 0,
+      extra_charge_amount: this.extraChargeAmount || 0,
+      extra_charge_label: this.extraChargeLabel || 'Extra Charges',
       notes: notes,
       items: this.cart.map(i => ({
         product_id: i.product_id,
@@ -455,16 +514,24 @@ const POSModule = {
           <span>Subtotal:</span>
           <span>₹${parseFloat(sale.subtotal).toFixed(2)}</span>
         </div>
-        ${sale.discount_amount > 0 ? `
+        ${parseFloat(sale.discount_amount) > 0 ? `
           <div style="display: flex; justify-content: space-between; font-size: 11px; color: #b91c1c;">
             <span>Discount:</span>
             <span>- ₹${parseFloat(sale.discount_amount).toFixed(2)}</span>
           </div>
         ` : ''}
-        <div style="display: flex; justify-content: space-between; font-size: 11px;">
-          <span>GST / Tax:</span>
-          <span>₹${parseFloat(sale.tax_amount).toFixed(2)}</span>
-        </div>
+        ${parseFloat(sale.tax_amount) > 0 ? `
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: #0f766e;">
+            <span>GST / Tax:</span>
+            <span>+ ₹${parseFloat(sale.tax_amount).toFixed(2)}</span>
+          </div>
+        ` : ''}
+        ${parseFloat(sale.extra_charge_amount || 0) > 0 ? `
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: #b45309;">
+            <span>${sale.extra_charge_label || 'Extra Charges'}:</span>
+            <span>+ ₹${parseFloat(sale.extra_charge_amount).toFixed(2)}</span>
+          </div>
+        ` : ''}
         <div class="receipt-divider"></div>
         <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; color: #881337;">
           <span>GRAND TOTAL:</span>

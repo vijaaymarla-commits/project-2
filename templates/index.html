@@ -440,9 +440,40 @@
                        oninput="POSModule.renderCart()">
               </div>
 
-              <div class="summary-line">
-                <span>GST / Tax (5%):</span>
-                <span id="pos-tax">₹0.00</span>
+              <!-- OPTIONAL GST ROW -->
+              <div class="summary-line align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" id="pos-gst-toggle" onchange="POSModule.renderCart()" style="cursor:pointer;">
+                  </div>
+                  <label class="mb-0" for="pos-gst-toggle" style="font-size:0.82rem; cursor:pointer;">GST / Tax</label>
+                  <div id="pos-gst-rate-box" style="display:none;">
+                    <input type="number" id="pos-gst-rate" value="5" min="0" max="28" step="0.5"
+                           class="form-control form-control-sm text-end" style="width:62px;"
+                           oninput="POSModule.renderCart()" title="GST %">
+                  </div>
+                  <small class="text-muted" id="pos-gst-pct-label" style="display:none;">%</small>
+                </div>
+                <span id="pos-tax" class="text-muted">₹0.00</span>
+              </div>
+
+              <!-- EXTRA CHARGES ROW -->
+              <div class="summary-line align-items-center">
+                <div class="d-flex align-items-center gap-2 flex-grow-1">
+                  <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" id="pos-extra-toggle" onchange="POSModule.toggleExtraCharge()" style="cursor:pointer;">
+                  </div>
+                  <input type="text" id="pos-extra-label" value="Extra Charges"
+                         class="form-control form-control-sm" style="width:120px; display:none; font-size:0.78rem;"
+                         oninput="POSModule.renderCart()" placeholder="e.g. Cutting fee">
+                  <label class="mb-0 text-muted" for="pos-extra-toggle" style="font-size:0.82rem; cursor:pointer;" id="pos-extra-static-label">+ Extra Charge</label>
+                </div>
+                <div id="pos-extra-amt-box" style="display:none;">
+                  <input type="number" id="pos-extra-amount" value="0" min="0" step="10"
+                         class="form-control form-control-sm text-end text-warning fw-bold" style="width:80px;"
+                         oninput="POSModule.renderCart()">
+                </div>
+                <span id="pos-extra-display" class="text-muted">₹0.00</span>
               </div>
 
               <div class="summary-total">

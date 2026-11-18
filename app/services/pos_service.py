@@ -88,9 +88,16 @@ class POSService:
         discount = max(0.0, min(discount, subtotal))
 
         discounted_subtotal = subtotal - discount
-        tax_rate = float(cart_data.get('tax_rate', 5.0))
-        tax_amount = round(discounted_subtotal * (tax_rate / 100.0), 2)
-        total_amount = round(discounted_subtotal + tax_amount, 2)
+
+        # Optional GST — tax_rate=0 means GST is disabled for this bill
+        tax_rate = float(cart_data.get('tax_rate', 0.0))
+        tax_amount = round(discounted_subtotal * (tax_rate / 100.0), 2) if tax_rate > 0 else 0.0
+
+        # Extra prescribed charge (e.g. delivery, cutting, packing fee)
+        extra_charge_amount = round(max(0.0, float(cart_data.get('extra_charge_amount', 0.0))), 2)
+        extra_charge_label = str(cart_data.get('extra_charge_label', 'Extra Charges')).strip() or 'Extra Charges'
+
+        total_amount = round(discounted_subtotal + tax_amount + extra_charge_amount, 2)
 
         invoice_no = cls.generate_invoice_no()
 
@@ -103,6 +110,8 @@ class POSService:
             'subtotal': subtotal,
             'discount_amount': discount,
             'tax_amount': tax_amount,
+            'extra_charge_amount': extra_charge_amount,
+            'extra_charge_label': extra_charge_label,
             'total_amount': total_amount,
             'cost_total': cost_total,
             'payment_method': cart_data.get('payment_method', 'Cash'),
