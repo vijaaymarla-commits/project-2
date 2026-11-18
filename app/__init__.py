@@ -44,6 +44,15 @@ def create_app():
     def index():
         return render_template('index.html')
 
+    @app.route('/admin/login')
+    def admin_login():
+        return render_template('admin_login.html')
+
+    @app.route('/staff/login')
+    @app.route('/login')
+    def staff_login():
+        return render_template('staff_login.html')
+
     @app.errorhandler(404)
     def not_found(e):
         return jsonify({'error': 'Resource not found'}), 404

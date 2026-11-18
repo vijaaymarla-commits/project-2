@@ -1,6 +1,6 @@
 /* ==========================================================
    FRESH CUT MEAT SHOP - MANAGEMENT MODULES (ENHANCED)
-   With Meat Images & Stock Badging
+   With Stock Incrementing & Decrementing Controls
    ========================================================== */
 
 // 1. PRODUCTS MODULE
@@ -138,7 +138,7 @@ const ProductsModule = {
   }
 };
 
-// 2. INVENTORY & WASTAGE MODULE
+// 2. INVENTORY MODULE (STOCK INCREMENT & DECREMENT CONTROLS)
 const InventoryModule = {
   async load() {
     try {
@@ -168,9 +168,16 @@ const InventoryModule = {
               `}
             </td>
             <td class="text-end admin-only">
-              <button class="btn btn-sm btn-outline-danger" onclick="InventoryModule.openAdjustModal('${item.product_id}', '${item.name}', '${item.unit}', ${item.current_stock})">
-                <i class="bi bi-scissors me-1"></i> Log Wastage / Trim
-              </button>
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-success fw-bold" title="Increment Stock"
+                        onclick="InventoryModule.openIncrementModal('${item.product_id}', '${item.name}', '${item.unit}', ${stock})">
+                  <i class="bi bi-plus-circle me-1"></i> Increment Stock
+                </button>
+                <button class="btn btn-outline-danger fw-bold" title="Decrement Stock"
+                        onclick="InventoryModule.openDecrementModal('${item.product_id}', '${item.name}', '${item.unit}', ${stock})">
+                  <i class="bi bi-dash-circle me-1"></i> Decrement Stock
+                </button>
+              </div>
             </td>
           </tr>
         `;
@@ -193,8 +200,8 @@ const InventoryModule = {
           <td><small class="text-muted">${new Date(m.created_at).toLocaleString()}</small></td>
           <td class="fw-bold">${m.product_name}</td>
           <td>
-            <span class="badge ${m.movement_type === 'SALE' ? 'bg-danger' : m.movement_type === 'PURCHASE' ? 'bg-success' : 'bg-dark'}">
-              ${m.movement_type}
+            <span class="badge ${m.quantity > 0 ? 'bg-success' : 'bg-danger'}">
+              ${m.quantity > 0 ? 'STOCK IN (+)' : 'STOCK OUT (-)'}
             </span>
           </td>
           <td class="fw-bold ${m.quantity > 0 ? 'text-success' : 'text-danger'}">
@@ -209,35 +216,86 @@ const InventoryModule = {
     }
   },
 
-  openAdjustModal(productId, name, unit, currentStock) {
-    document.getElementById('adj-prod-id').value = productId;
-    document.getElementById('adj-prod-name').innerText = `${name} (Current: ${currentStock} ${unit})`;
-    document.getElementById('adj-quantity').value = '';
-    document.getElementById('adj-reason').value = '';
-    new bootstrap.Modal(document.getElementById('adjustModal')).show();
+  // ➕ OPEN STOCK INCREMENT MODAL
+  openIncrementModal(productId, name, unit, currentStock) {
+    document.getElementById('inc-prod-id').value = productId;
+    document.getElementById('inc-prod-name').innerText = `${name} (Current Stock: ${currentStock.toFixed(2)} ${unit})`;
+    document.getElementById('inc-unit-label').innerText = unit;
+    document.getElementById('inc-quantity').value = '';
+    document.getElementById('inc-reason').value = 'Fresh butchered batch / farm stock arrival';
+    new bootstrap.Modal(document.getElementById('stockIncrementModal')).show();
   },
 
-  async submitAdjustment(e) {
-    e.preventDefault();
-    const pid = document.getElementById('adj-prod-id').value;
-    const type = document.getElementById('adj-type').value;
-    const qty = parseFloat(document.getElementById('adj-quantity').value);
-    const reason = document.getElementById('adj-reason').value;
+  setPresetIncrement(amount) {
+    document.getElementById('inc-quantity').value = amount;
+  },
 
-    const delta = type === 'RETURN' || type === 'PURCHASE' ? Math.abs(qty) : -Math.abs(qty);
+  async submitStockIncrement(e) {
+    e.preventDefault();
+    const pid = document.getElementById('inc-prod-id').value;
+    const qty = parseFloat(document.getElementById('inc-quantity').value);
+    const reason = document.getElementById('inc-reason').value.trim();
+
+    if (isNaN(qty) || qty <= 0) {
+      AnimEngine.showToast('Please enter a valid increment quantity.', 'warning');
+      return;
+    }
 
     try {
-      await App.api('/api/v1/inventory/adjust', {
+      const res = await App.api('/api/v1/inventory/adjust', {
         method: 'POST',
         body: {
           product_id: pid,
-          quantity_delta: delta,
-          movement_type: type,
+          action: 'INCREMENT',
+          quantity: qty,
           reason: reason
         }
       });
-      AnimEngine.showToast('Stock adjustment logged successfully.', 'success');
-      bootstrap.Modal.getInstance(document.getElementById('adjustModal')).hide();
+      AnimEngine.showToast(res.message || 'Stock successfully incremented!', 'success');
+      bootstrap.Modal.getInstance(document.getElementById('stockIncrementModal')).hide();
+      this.load();
+    } catch (err) {
+      console.error(err);
+    }
+  },
+
+  // ➖ OPEN STOCK DECREMENT MODAL
+  openDecrementModal(productId, name, unit, currentStock) {
+    document.getElementById('dec-prod-id').value = productId;
+    document.getElementById('dec-prod-name').innerText = `${name} (Current Stock: ${currentStock.toFixed(2)} ${unit})`;
+    document.getElementById('dec-unit-label').innerText = unit;
+    document.getElementById('dec-quantity').value = '';
+    document.getElementById('dec-reason').value = 'Trimming loss / excess fat removal';
+    new bootstrap.Modal(document.getElementById('stockDecrementModal')).show();
+  },
+
+  setPresetDecrement(amount) {
+    document.getElementById('dec-quantity').value = amount;
+  },
+
+  async submitStockDecrement(e) {
+    e.preventDefault();
+    const pid = document.getElementById('dec-prod-id').value;
+    const qty = parseFloat(document.getElementById('dec-quantity').value);
+    const reason = document.getElementById('dec-reason').value.trim();
+
+    if (isNaN(qty) || qty <= 0) {
+      AnimEngine.showToast('Please enter a valid decrement quantity.', 'warning');
+      return;
+    }
+
+    try {
+      const res = await App.api('/api/v1/inventory/adjust', {
+        method: 'POST',
+        body: {
+          product_id: pid,
+          action: 'DECREMENT',
+          quantity: qty,
+          reason: reason
+        }
+      });
+      AnimEngine.showToast(res.message || 'Stock successfully decremented!', 'success');
+      bootstrap.Modal.getInstance(document.getElementById('stockDecrementModal')).hide();
       this.load();
     } catch (err) {
       console.error(err);

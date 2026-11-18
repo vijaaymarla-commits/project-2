@@ -17,100 +17,6 @@
 </head>
 <body>
 
-<!-- ==========================================================
-     DEDICATED SPLIT SIGN IN SCREEN (SHOWN INITIALLY / ON LOGOUT)
-     ========================================================== -->
-<div id="auth-screen-container" style="display: none;">
-  <div class="auth-card-box">
-    
-    <!-- Left Brand Column -->
-    <div class="auth-brand-side">
-      <div>
-        <div class="d-flex align-items-center gap-3 mb-4">
-          <div class="brand-icon fs-2"><i class="bi bi-shield-shaded"></i></div>
-          <div>
-            <h3 class="mb-0 fw-bold store-name-text">Fresh Cut</h3>
-            <span class="badge bg-danger text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 0.08em;">Prime Meat POS & ERP</span>
-          </div>
-        </div>
-        <h2 class="fw-extrabold mb-3" style="font-size: 1.8rem; line-height: 1.25;">Hygienic, Farm-Fresh & Tender Meat Operations</h2>
-        <p class="text-white-50" style="font-size: 0.9rem;">High-speed butcher point-of-sale, weight-scale billing, inventory wastage tracking, and Supabase cloud sync.</p>
-      </div>
-
-      <div>
-        <div class="d-flex align-items-center gap-2 text-white-50 small mb-2">
-          <i class="bi bi-check-circle-fill text-warning"></i>
-          <span>PostgreSQL Relational Cloud Database Connected</span>
-        </div>
-        <div class="d-flex align-items-center gap-2 text-white-50 small">
-          <i class="bi bi-check-circle-fill text-warning"></i>
-          <span>Strict Role-Based Security (Admin vs Cashier)</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Right Login Form Column -->
-    <div class="p-4 p-md-5 d-flex flex-column justify-content-center bg-white">
-      
-      <!-- Role Portal Selector Tabs -->
-      <div class="auth-portal-selector">
-        <button type="button" class="auth-tab-btn active" id="tab-admin-portal" onclick="App.setAuthPortalTab('admin')">
-          <i class="bi bi-shield-lock-fill"></i> Admin / Owner
-        </button>
-        <button type="button" class="auth-tab-btn" id="tab-staff-portal" onclick="App.setAuthPortalTab('employee')">
-          <i class="bi bi-person-badge-fill"></i> Staff / Cashier
-        </button>
-      </div>
-
-      <div class="text-center mb-4">
-        <i id="auth-role-icon" class="bi bi-shield-lock-fill text-danger fs-2 mb-2"></i>
-        <h4 class="fw-bold mb-1" id="auth-role-title">🛡️ Owner & Administrator Portal</h4>
-        <small class="text-muted" id="auth-role-desc">Access executive P&L, shop expenses, staff administration, and settings</small>
-      </div>
-
-      <form onsubmit="App.handleLoginFormSubmit(event)">
-        <div class="mb-3">
-          <label class="form-label fw-bold" style="font-size: 0.85rem;">Account Email</label>
-          <div class="input-group">
-            <span class="input-group-text bg-light"><i class="bi bi-envelope"></i></span>
-            <input type="email" id="auth-email-input" class="form-control" value="admin@freshcuts.com" required>
-          </div>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label fw-bold" style="font-size: 0.85rem;">Access Password</label>
-          <div class="input-group">
-            <span class="input-group-text bg-light"><i class="bi bi-key"></i></span>
-            <input type="password" id="auth-pwd-input" class="form-control" value="admin123" required>
-          </div>
-        </div>
-
-        <button type="submit" class="btn btn-fresh-primary w-100 py-2 fs-6 mb-3 ripple-btn" id="auth-submit-btn">
-          <i class="bi bi-box-arrow-in-right me-2"></i> Sign In to Terminal
-        </button>
-      </form>
-
-      <!-- 1-Click Quick Demo Sign In Helpers -->
-      <div class="text-center pt-2 border-top">
-        <small class="text-muted fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">Quick 1-Click Evaluation</small>
-        <div class="d-flex gap-2 mt-2">
-          <button type="button" class="btn btn-sm btn-outline-danger flex-fill" onclick="App.login('admin@freshcuts.com', 'admin123')">
-            <i class="bi bi-shield-check"></i> Demo Admin
-          </button>
-          <button type="button" class="btn btn-sm btn-outline-dark flex-fill" onclick="App.login('emp1@freshcuts.com', 'emp123')">
-            <i class="bi bi-receipt"></i> Demo Cashier
-          </button>
-        </div>
-      </div>
-
-    </div>
-
-  </div>
-</div>
-
-<!-- ==========================================================
-     MAIN APP SHELL (SHOWN WHEN LOGGED IN)
-     ========================================================== -->
 <div id="app-container" style="display: none;">
   
   <!-- Sidebar Navigation -->
@@ -149,7 +55,7 @@
       <li class="nav-item">
         <a href="#" class="nav-link" data-view="inventory">
           <i class="bi bi-boxes"></i>
-          <span>Stock & Wastage</span>
+          <span>Stock Management</span>
         </a>
       </li>
 
@@ -385,7 +291,7 @@
                   <h5 class="section-title text-danger mb-0">
                     <i class="bi bi-exclamation-octagon-fill me-1"></i> Stock Reorder & Out of Stock
                   </h5>
-                  <button class="btn btn-sm btn-fresh-secondary" onclick="App.switchView('inventory')">View All</button>
+                  <button class="btn btn-sm btn-fresh-secondary" onclick="App.switchView('inventory')">Manage Stock</button>
                 </div>
                 <div id="dash-low-stock-list"></div>
               </div>
@@ -615,18 +521,20 @@
       </div>
 
       <!-- ==========================================
-           VIEW 4: INVENTORY & WASTAGE
+           VIEW 4: INVENTORY MANAGEMENT (INCREMENT & DECREMENT)
            ========================================== -->
       <div id="view-inventory" class="view-container" style="display: none;">
         <div class="premium-card mb-4">
           <div class="section-header">
             <div>
               <h5 class="section-title mb-0">Stock Balances & Thresholds</h5>
-              <small class="text-muted">Real-time butcher inventory levels and out of stock warnings</small>
+              <small class="text-muted">Direct stock increment (Stock In) & decrement (Stock Out) controls</small>
             </div>
-            <button class="btn btn-fresh-secondary" onclick="InventoryModule.load()">
-              <i class="bi bi-arrow-clockwise"></i> Refresh Stock
-            </button>
+            <div class="d-flex gap-2">
+              <button class="btn btn-fresh-secondary" onclick="InventoryModule.load()">
+                <i class="bi bi-arrow-clockwise"></i> Refresh Stock
+              </button>
+            </div>
           </div>
           <div class="table-responsive">
             <table class="table-custom">
@@ -638,7 +546,7 @@
                   <th>Available Stock</th>
                   <th>Min Alert Threshold</th>
                   <th>Alert Status</th>
-                  <th class="text-end admin-only">Adjustment</th>
+                  <th class="text-end admin-only">Stock Actions</th>
                 </tr>
               </thead>
               <tbody id="inventory-table-body"></tbody>
@@ -649,7 +557,7 @@
         <div class="premium-card admin-only">
           <div class="section-header">
             <h5 class="section-title mb-0">Stock Movement Audit Trail</h5>
-            <small class="text-muted">Automatic deductions from sales, manual trimming wastage, and inbound purchases</small>
+            <small class="text-muted">Complete history of stock additions (+), decrements (-), and POS sales</small>
           </div>
           <div class="table-responsive">
             <table class="table-custom">
@@ -841,7 +749,7 @@
                   <tr class="table-light"><td class="fw-bold">Net Sales Revenue</td><td class="text-end fw-bold text-danger" id="pnl-net-revenue">₹0.00</td></tr>
                   <tr><td>Cost of Goods Sold (COGS)</td><td class="text-end text-muted" id="pnl-cogs">₹0.00</td></tr>
                   <tr class="table-danger"><td class="fw-bold">Gross Profit</td><td class="text-end fw-bold text-danger" id="pnl-gross-profit">₹0.00</td></tr>
-                  <tr><td>Wastage & Trimming Loss</td><td class="text-end text-danger" id="pnl-wastage">₹0.00</td></tr>
+                  <tr><td>Trimming / Spoilage Loss</td><td class="text-end text-danger" id="pnl-wastage">₹0.00</td></tr>
                   <tr><td>Operating Expenses</td><td class="text-end text-danger" id="pnl-expenses">₹0.00</td></tr>
                   <tr class="table-light"><td class="fw-bold fs-5">Net Operating Result</td><td class="text-end" id="pnl-net-result">₹0.00</td></tr>
                 </tbody>
@@ -1110,39 +1018,99 @@
   </div>
 </div>
 
-<!-- 3. Stock Adjustment & Wastage Modal -->
-<div class="modal fade" id="adjustModal" tabindex="-1">
+<!-- 3A. STOCK INCREMENT MODAL (➕ STOCK IN) -->
+<div class="modal fade" id="stockIncrementModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content modal-content-fresh">
-      <div class="modal-header modal-header-fresh">
-        <h5 class="modal-title"><i class="bi bi-scissors me-2"></i> Log Stock Wastage / Trimming Loss</h5>
+      <div class="modal-header modal-header-fresh" style="background: linear-gradient(135deg, #059669 0%, #064e3b 100%);">
+        <h5 class="modal-title"><i class="bi bi-plus-circle-fill me-2"></i> Stock Increment (Stock In)</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <form onsubmit="InventoryModule.submitAdjustment(event)">
+      <form onsubmit="InventoryModule.submitStockIncrement(event)">
         <div class="modal-body p-4">
-          <input type="hidden" id="adj-prod-id">
-          <p class="fw-bold mb-3" id="adj-prod-name"></p>
-          <div class="mb-3">
-            <label class="form-label">Adjustment Type</label>
-            <select id="adj-type" class="form-select" required>
-              <option value="WASTAGE">Wastage / Bone & Fat Trimming Loss</option>
-              <option value="DAMAGE">Spoilage / Cold Chain Failure Damage</option>
-              <option value="RETURN">Customer Return / Exchange</option>
-              <option value="ADJUSTMENT">Physical Audit Stock Correction</option>
-            </select>
+          <input type="hidden" id="inc-prod-id">
+          <div class="alert alert-success d-flex align-items-center mb-3">
+            <i class="bi bi-box-seam fs-4 me-3"></i>
+            <div>
+              <div class="fw-bold" id="inc-prod-name">Loading...</div>
+              <small class="text-muted">Directly increment available butchery shelf stock</small>
+            </div>
           </div>
+
           <div class="mb-3">
-            <label class="form-label">Quantity</label>
-            <input type="number" step="0.05" min="0.05" id="adj-quantity" class="form-control" placeholder="e.g. 1.25" required>
+            <label class="form-label fw-bold">Quantity to Add (<span id="inc-unit-label">kg</span>)</label>
+            <input type="number" step="0.1" min="0.1" id="inc-quantity" class="form-control form-control-lg text-success fw-bold" placeholder="e.g. 10.0" required>
+            
+            <div class="d-flex gap-2 mt-2">
+              <button type="button" class="btn btn-sm btn-outline-success" onclick="InventoryModule.setPresetIncrement(5)">+5</button>
+              <button type="button" class="btn btn-sm btn-outline-success" onclick="InventoryModule.setPresetIncrement(10)">+10</button>
+              <button type="button" class="btn btn-sm btn-outline-success" onclick="InventoryModule.setPresetIncrement(25)">+25</button>
+              <button type="button" class="btn btn-sm btn-outline-success" onclick="InventoryModule.setPresetIncrement(50)">+50</button>
+            </div>
           </div>
+
           <div class="mb-3">
-            <label class="form-label">Reason / Butchery Remarks</label>
-            <input type="text" id="adj-reason" class="form-control" placeholder="e.g. Bone & skin trimming loss" required>
+            <label class="form-label fw-bold">Reason / Reference Note</label>
+            <input type="text" id="inc-reason" class="form-control" value="Fresh farm arrival / butchered batch" required>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-fresh-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-fresh-danger ripple-btn">Record Stock Deduction</button>
+          <button type="submit" class="btn btn-success fw-bold ripple-btn">
+            <i class="bi bi-plus-lg me-1"></i> Add to Shelf Stock
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- 3B. STOCK DECREMENT MODAL (➖ STOCK OUT) -->
+<div class="modal fade" id="stockDecrementModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content modal-content-fresh">
+      <div class="modal-header modal-header-fresh" style="background: linear-gradient(135deg, #be123c 0%, #881337 100%);">
+        <h5 class="modal-title"><i class="bi bi-dash-circle-fill me-2"></i> Stock Decrement (Stock Out)</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form onsubmit="InventoryModule.submitStockDecrement(event)">
+        <div class="modal-body p-4">
+          <input type="hidden" id="dec-prod-id">
+          <div class="alert alert-danger d-flex align-items-center mb-3">
+            <i class="bi bi-scissors fs-4 me-3"></i>
+            <div>
+              <div class="fw-bold" id="dec-prod-name">Loading...</div>
+              <small class="text-muted">Reduce shelf stock for trimming loss, spoilage, or audit adjustments</small>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Quantity to Deduct (<span id="dec-unit-label">kg</span>)</label>
+            <input type="number" step="0.1" min="0.1" id="dec-quantity" class="form-control form-control-lg text-danger fw-bold" placeholder="e.g. 2.0" required>
+            
+            <div class="d-flex gap-2 mt-2">
+              <button type="button" class="btn btn-sm btn-outline-danger" onclick="InventoryModule.setPresetDecrement(1)">-1</button>
+              <button type="button" class="btn btn-sm btn-outline-danger" onclick="InventoryModule.setPresetDecrement(2)">-2</button>
+              <button type="button" class="btn btn-sm btn-outline-danger" onclick="InventoryModule.setPresetDecrement(5)">-5</button>
+              <button type="button" class="btn btn-sm btn-outline-danger" onclick="InventoryModule.setPresetDecrement(10)">-10</button>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Reason for Reduction</label>
+            <select id="dec-reason" class="form-select mb-2">
+              <option value="Bone & fat trimming loss">Bone & fat trimming loss</option>
+              <option value="Cold chain / spoilage loss">Cold chain / spoilage loss</option>
+              <option value="Customer return / exchange">Customer return / exchange</option>
+              <option value="Physical count audit correction">Physical count audit correction</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-fresh-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger fw-bold ripple-btn">
+            <i class="bi bi-dash-lg me-1"></i> Deduct from Stock
+          </button>
         </div>
       </form>
     </div>

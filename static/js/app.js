@@ -1,6 +1,6 @@
 /* ==========================================================
    FRESH CUT MEAT SHOP - APP CONTROLLER
-   With Separate Admin & Staff Sign-In Portals
+   Integrated with Separate Admin & Staff Login Routes
    ========================================================== */
 
 const App = {
@@ -8,130 +8,38 @@ const App = {
   user: JSON.parse(localStorage.getItem('fresh_user') || 'null'),
   settings: {},
   currentView: 'dashboard',
-  selectedLoginRole: 'admin', // 'admin' or 'employee'
 
   async init() {
     await this.fetchSettings();
 
-    // Check if valid token exists
-    if (this.token && this.user) {
-      this.showAppScreen();
+    // Check if authenticated
+    if (!this.token || !this.user) {
+      // Redirect to staff login if not authenticated and on root
+      if (window.location.pathname === '/') {
+        window.location.href = '/staff/login';
+        return;
+      }
+    } else {
+      const appContainer = document.getElementById('app-container');
+      if (appContainer) appContainer.style.display = 'flex';
       this.updateUserUI();
       this.switchView('dashboard');
-    } else {
-      this.showAuthScreen('admin');
     }
 
     this.setupNavigation();
     this.startClock();
   },
 
-  showAuthScreen(role = 'admin') {
-    this.selectedLoginRole = role;
-    const authContainer = document.getElementById('auth-screen-container');
-    const appContainer = document.getElementById('app-container');
-
-    if (authContainer) authContainer.style.display = 'flex';
-    if (appContainer) appContainer.style.display = 'none';
-
-    this.setAuthPortalTab(role);
-  },
-
-  showAppScreen() {
-    const authContainer = document.getElementById('auth-screen-container');
-    const appContainer = document.getElementById('app-container');
-
-    if (authContainer) authContainer.style.display = 'none';
-    if (appContainer) appContainer.style.display = 'flex';
-  },
-
-  setAuthPortalTab(role) {
-    this.selectedLoginRole = role;
-
-    const adminTab = document.getElementById('tab-admin-portal');
-    const staffTab = document.getElementById('tab-staff-portal');
-    const roleTitle = document.getElementById('auth-role-title');
-    const roleDesc = document.getElementById('auth-role-desc');
-    const emailInput = document.getElementById('auth-email-input');
-    const pwdInput = document.getElementById('auth-pwd-input');
-    const iconHeader = document.getElementById('auth-role-icon');
-
-    if (role === 'admin') {
-      if (adminTab) adminTab.classList.add('active');
-      if (staffTab) staffTab.classList.remove('active');
-      if (roleTitle) roleTitle.innerText = '🛡️ Owner & Administrator Portal';
-      if (roleDesc) roleDesc.innerText = 'Access executive P&L, shop expenses, staff administration, and settings';
-      if (emailInput) emailInput.value = 'admin@freshcuts.com';
-      if (pwdInput) pwdInput.value = 'admin123';
-      if (iconHeader) iconHeader.className = 'bi bi-shield-lock-fill text-danger fs-2 mb-2';
-    } else {
-      if (staffTab) staffTab.classList.add('active');
-      if (adminTab) adminTab.classList.remove('active');
-      if (roleTitle) roleTitle.innerText = '👨‍🍳 Staff & Cashier Terminal';
-      if (roleDesc) roleDesc.innerText = 'Access high-speed POS billing, digital receipts, and shelf stock';
-      if (emailInput) emailInput.value = 'emp1@freshcuts.com';
-      if (pwdInput) pwdInput.value = 'emp123';
-      if (iconHeader) iconHeader.className = 'bi bi-receipt-cutoff text-success fs-2 mb-2';
-    }
-  },
-
-  async handleLoginFormSubmit(e) {
-    e.preventDefault();
-    const email = document.getElementById('auth-email-input').value.trim();
-    const password = document.getElementById('auth-pwd-input').value;
-    const loginBtn = document.getElementById('auth-submit-btn');
-
-    if (loginBtn) {
-      loginBtn.disabled = true;
-      loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Authenticating...';
-    }
-
-    try {
-      await this.login(email, password);
-    } finally {
-      if (loginBtn) {
-        loginBtn.disabled = false;
-        loginBtn.innerHTML = '<i class="bi bi-box-arrow-in-right me-2"></i> Sign In to Terminal';
-      }
-    }
-  },
-
-  async login(email, password, silent = false) {
-    try {
-      const res = await fetch('/api/v1/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-
-      this.token = data.token;
-      this.user = data.user;
-      localStorage.setItem('fresh_token', this.token);
-      localStorage.setItem('fresh_user', JSON.stringify(this.user));
-
-      this.showAppScreen();
-      this.updateUserUI();
-
-      if (!silent) {
-        AnimEngine.showToast(`Welcome ${this.user.full_name} (${this.user.role.toUpperCase()})`, 'success');
-      }
-
-      this.switchView('dashboard');
-    } catch (err) {
-      console.error('Login error:', err);
-      AnimEngine.showToast(err.message, 'error');
-    }
-  },
-
   logout() {
+    const wasAdmin = this.user && this.user.role === 'admin';
     this.token = null;
     this.user = null;
     localStorage.removeItem('fresh_token');
     localStorage.removeItem('fresh_user');
     AnimEngine.showToast('You have been signed out.', 'info');
-    this.showAuthScreen(this.selectedLoginRole || 'admin');
+    setTimeout(() => {
+      window.location.href = wasAdmin ? '/admin/login' : '/staff/login';
+    }, 400);
   },
 
   async api(endpoint, options = {}) {
@@ -197,7 +105,6 @@ const App = {
       roleBadge.className = `user-role-badge role-${this.user.role}`;
     }
 
-    // Role-based visibility
     const isAdmin = this.user.role === 'admin';
     document.querySelectorAll('.admin-only').forEach(el => {
       el.style.display = isAdmin ? '' : 'none';
@@ -211,11 +118,29 @@ const App = {
     }
   },
 
-  toggleDemoRole() {
-    if (this.user.role === 'admin') {
-      this.login('emp1@freshcuts.com', 'emp123');
-    } else {
-      this.login('admin@freshcuts.com', 'admin123');
+  async toggleDemoRole() {
+    const targetEmail = this.user.role === 'admin' ? 'emp1@freshcuts.com' : 'admin@freshcuts.com';
+    const targetPwd = this.user.role === 'admin' ? 'emp123' : 'admin123';
+
+    try {
+      const res = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: targetEmail, password: targetPwd })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      this.token = data.token;
+      this.user = data.user;
+      localStorage.setItem('fresh_token', this.token);
+      localStorage.setItem('fresh_user', JSON.stringify(this.user));
+
+      AnimEngine.showToast(`Switched terminal to ${this.user.full_name} (${this.user.role.toUpperCase()})`, 'success');
+      this.updateUserUI();
+      this.switchView('dashboard');
+    } catch (err) {
+      AnimEngine.showToast(err.message, 'error');
     }
   },
 
@@ -266,7 +191,7 @@ const App = {
       'dashboard': { title: 'Executive Butchery Dashboard', desc: 'Real-time sales, meat inventory balances and profit analytics' },
       'pos': { title: 'Fresh Cut POS Billing', desc: 'High-speed touch billing, weighing scale & digital receipts' },
       'products': { title: 'Meat Cuts & Pricing Catalog', desc: 'Manage poultry, mutton, seafood, beef cuts and price rules' },
-      'inventory': { title: 'Inventory & Trimming Wastage', desc: 'Track shelf stock, bone/fat trimming losses and spoilage' },
+      'inventory': { title: 'Stock Increment & Decrement Management', desc: 'Add incoming fresh meat, record stock reductions and monitor thresholds' },
       'customers': { title: 'Customer Credit Ledger', desc: 'Retail and wholesale accounts with credit management' },
       'suppliers': { title: 'Suppliers & Livestock Farms', desc: 'Livestock breeders, poultry hatcheries and seafood logistics' },
       'purchases': { title: 'Inbound Stock Purchases', desc: 'Receive stock shipments and record supplier invoices' },

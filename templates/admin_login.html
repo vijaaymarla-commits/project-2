@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin & Owner Sign In - Fresh Cut Meat Shop</title>
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/animations.css">
+</head>
+<body style="background: linear-gradient(135deg, #1c1917 0%, #3b0716 50%, #1c050a 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
+
+<div class="auth-card-box" style="max-width: 960px; width: 100%;">
+  
+  <!-- Left Side: Brand Imagery -->
+  <div class="auth-brand-side" style="background: linear-gradient(135deg, #881337 0%, #4c0519 100%);">
+    <div>
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="brand-icon fs-2"><i class="bi bi-shield-shaded"></i></div>
+        <div>
+          <h3 class="mb-0 fw-bold store-name-text text-white">Fresh Cut</h3>
+          <span class="badge bg-dark text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 0.08em;">Owner Portal</span>
+        </div>
+      </div>
+      <h2 class="fw-extrabold mb-3 text-white" style="font-size: 1.85rem; line-height: 1.25;">Executive Management & Financial Control</h2>
+      <p class="text-white-50" style="font-size: 0.9rem;">Access real-time sales profit analytics, stock increments & decrements, supplier purchases, staff permissions, and Supabase cloud settings.</p>
+    </div>
+
+    <div>
+      <div class="d-flex align-items-center gap-2 text-white-50 small mb-2">
+        <i class="bi bi-check-circle-fill text-warning"></i>
+        <span>Full Financial P&L & COGS Reporting</span>
+      </div>
+      <div class="d-flex align-items-center gap-2 text-white-50 small mb-2">
+        <i class="bi bi-check-circle-fill text-warning"></i>
+        <span>Stock Increment & Decrement Management</span>
+      </div>
+      <div class="d-flex align-items-center gap-2 text-white-50 small">
+        <i class="bi bi-check-circle-fill text-warning"></i>
+        <span>Supabase PostgreSQL 17 Cloud Synced</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Side: Dedicated Admin Login Form -->
+  <div class="p-4 p-md-5 d-flex flex-column justify-content-center bg-white">
+    
+    <div class="text-center mb-4">
+      <div class="d-inline-flex p-3 rounded-circle bg-danger-subtle text-danger mb-2">
+        <i class="bi bi-shield-lock-fill fs-2"></i>
+      </div>
+      <h4 class="fw-bold text-dark mb-1">Owner / Administrator Login</h4>
+      <p class="text-muted small mb-0">Enter your administrative credentials to manage store operations</p>
+    </div>
+
+    <form id="admin-login-form" onsubmit="handleAdminLogin(event)">
+      <div class="mb-3">
+        <label class="form-label fw-bold text-dark" style="font-size: 0.85rem;">Admin Email Address</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light text-muted"><i class="bi bi-envelope-fill"></i></span>
+          <input type="email" id="admin-email" class="form-control" value="admin@freshcuts.com" required>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label fw-bold text-dark" style="font-size: 0.85rem;">Master Password</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light text-muted"><i class="bi bi-key-fill"></i></span>
+          <input type="password" id="admin-pwd" class="form-control" value="admin123" required>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-fresh-primary w-100 py-2 fs-6 mb-3 ripple-btn" id="admin-btn">
+        <i class="bi bi-box-arrow-in-right me-2"></i> Access Admin Dashboard
+      </button>
+
+      <div class="text-center p-3 rounded bg-light border mb-3">
+        <small class="text-muted fw-bold d-block mb-1">Looking for Cashier / POS Billing?</small>
+        <a href="/staff/login" class="btn btn-sm btn-outline-dark fw-bold">
+          <i class="bi bi-person-badge-fill me-1"></i> Go to Staff & Cashier Terminal
+        </a>
+      </div>
+
+      <div class="text-center">
+        <button type="button" class="btn btn-sm btn-link text-danger text-decoration-none fw-bold" onclick="quickDemoFill()">
+          <i class="bi bi-lightning-charge-fill"></i> 1-Click Fill Demo Credentials
+        </button>
+      </div>
+    </form>
+
+  </div>
+
+</div>
+
+<!-- App Scripts -->
+<script src="/static/js/animations.js"></script>
+<script>
+function quickDemoFill() {
+  document.getElementById('admin-email').value = 'admin@freshcuts.com';
+  document.getElementById('admin-pwd').value = 'admin123';
+  AnimEngine.showToast('Demo admin credentials filled.', 'info');
+}
+
+async function handleAdminLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('admin-email').value.trim();
+  const password = document.getElementById('admin-pwd').value;
+  const btn = document.getElementById('admin-btn');
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Verifying Administrator...';
+
+  try {
+    const res = await fetch('/api/v1/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    if (data.user.role !== 'admin') {
+      throw new Error('Access denied. This portal is strictly for Shop Owners & Administrators. Please use Staff Login.');
+    }
+
+    localStorage.setItem('fresh_token', data.token);
+    localStorage.setItem('fresh_user', JSON.stringify(data.user));
+    AnimEngine.showToast('Login successful! Redirecting to Executive Dashboard...', 'success');
+    setTimeout(() => window.location.href = '/', 600);
+  } catch (err) {
+    AnimEngine.showToast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-2"></i> Access Admin Dashboard';
+  }
+}
+</script>
+
+</body>
+</html>

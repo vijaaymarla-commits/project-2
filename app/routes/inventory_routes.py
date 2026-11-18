@@ -8,7 +8,6 @@ inventory_bp = Blueprint('inventory', __name__, url_prefix='/api/v1/inventory')
 @require_auth
 def get_inventory():
     items = db.get_inventory()
-    # If employee, hide cost price
     if g.current_user['role'] == 'employee':
         for itm in items:
             itm.pop('cost_price', None)
@@ -19,16 +18,28 @@ def get_inventory():
 def adjust_stock():
     data = request.get_json() or {}
     product_id = data.get('product_id')
-    quantity_delta = data.get('quantity_delta')
-    movement_type = data.get('movement_type', 'WASTAGE')
-    reason = data.get('reason', 'Stock adjustment')
-    reference_id = data.get('reference_id', 'MANUAL-ADJ')
+    
+    # Support both direct quantity_delta and action ('INCREMENT' / 'DECREMENT')
+    action = data.get('action') # 'INCREMENT' or 'DECREMENT'
+    quantity = data.get('quantity')
+    
+    if action and quantity is not None:
+        qty = abs(float(quantity))
+        quantity_delta = qty if action == 'INCREMENT' else -qty
+        default_reason = f"Stock {action.title()} by Admin"
+    else:
+        quantity_delta = data.get('quantity_delta')
+        default_reason = 'Stock adjustment'
+
+    movement_type = data.get('movement_type', 'ADJUSTMENT')
+    if movement_type not in ('PURCHASE', 'SALE', 'WASTAGE', 'DAMAGE', 'RETURN', 'ADJUSTMENT'):
+        movement_type = 'ADJUSTMENT'
+
+    reason = data.get('reason') or default_reason
+    reference_id = data.get('reference_id', 'ADMIN-STOCK-ADJ')
 
     if not product_id or quantity_delta is None:
-        return jsonify({'error': 'Product ID and quantity delta are required.'}), 400
-
-    if movement_type not in ('WASTAGE', 'DAMAGE', 'RETURN', 'ADJUSTMENT', 'PURCHASE'):
-        return jsonify({'error': 'Invalid movement type.'}), 400
+        return jsonify({'error': 'Product ID and quantity are required.'}), 400
 
     try:
         new_balance = db.adjust_stock(
@@ -40,10 +51,11 @@ def adjust_stock():
             performed_by=g.current_user['id']
         )
         db.log_audit(g.current_user['id'], g.current_user['full_name'], 'STOCK_ADJUSTMENT', 'inventory', product_id,
-                     {'movement_type': movement_type, 'delta': quantity_delta, 'reason': reason}, request.remote_addr)
+                     {'action': action or ('INCREMENT' if float(quantity_delta) > 0 else 'DECREMENT'),
+                      'delta': quantity_delta, 'new_balance': new_balance, 'reason': reason}, request.remote_addr)
 
         return jsonify({
-            'message': 'Stock adjusted successfully.',
+            'message': f"Stock successfully {'increased' if float(quantity_delta) > 0 else 'decreased'} to {new_balance:.2f}.",
             'product_id': product_id,
             'new_stock': new_balance
         })
